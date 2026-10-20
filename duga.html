@@ -56,11 +56,35 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 header { display: flex; align-items: center; gap: 8px; }
-header .btn { flex: none; }
+header .hl { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.pill {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 13px;
+  font: 600 14px var(--ui); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; cursor: pointer;
+}
+.pill.strong { border-color: var(--accent); }
+.pill[hidden] { display: none; }
+/* settings: its own sheet, so opening it never pushes the text under the keyboard */
+.sh-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sh-head .big { flex: none; min-height: 40px; padding: 8px 16px; }
+.opts { display: grid; gap: 6px; }
+.opt {
+  display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 15px var(--ui);
+}
+.opt b { font-weight: 600; }
+.opt span { font-size: 13px; color: var(--muted); }
+.opt[aria-pressed="true"] { background: var(--zone); border-color: var(--accent); }
+.sheet-card .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sheet-card .seg button { padding: 9px 13px; font-size: 14px; }
+.sheet-card .btn { padding: 9px 13px; font-size: 14px; }
+.sheet-card .size { font-size: 14px; color: var(--fg); }
+.sheet-card .size input { flex: 1; width: auto; }
+.sheet-card .small { font-size: 13px; }
+#layout-row[hidden] { display: none; }
 h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-.summary { font-size: 12px; color: var(--muted); margin-right: auto; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.settings { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
-.settings[hidden], .seg[hidden] { display: none; }
+.summary { font-size: 12px; color: var(--muted); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg[hidden] { display: none; }
 /* measurements report: full-screen sheet over the keyboard */
 .report {
   position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto;
@@ -101,7 +125,7 @@ h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
 .chk input { accent-color: var(--accent); margin-top: 3px; }
 .report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.kbd .miss { fill: var(--bad); opacity: .35; pointer-events: none; }
+.kbd .miss { fill: var(--warm); opacity: .4; pointer-events: none; }
 .btn.icon { padding: 5px 7px; line-height: 0; color: var(--fg); }
 .btn.icon[aria-expanded="true"] { background: var(--zone); border-color: var(--accent); }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -122,7 +146,30 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   border: 1px solid var(--line); color: var(--muted);
 }
 .phrase .head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-.phrase .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: auto; min-width: 0; }
+.phrase .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phrase[hidden], .coach[hidden] { display: none; }
+/* coach strip: one calm instruction at a time, a step schedule, help that is offered, never forced */
+.coach {
+  padding: 9px 12px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--accent);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.coach-top { display: flex; align-items: center; gap: 8px; }
+.coach-step { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coach-text { font-size: 15px; }
+.coach-top .linkbtn { padding: 2px 4px; font-size: 13px; }
+.coach-text { font-size: 16px; line-height: 1.4; }
+.coach-text b { font-weight: 600; }
+.coach-text .done { color: var(--ok); font-weight: 600; }
+.coach-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.coach-acts button {
+  font: 600 14px var(--ui); padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+}
+.coach-acts button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.coach-dots { display: flex; gap: 5px; }
+.coach-dots i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.coach-dots i.done { background: var(--ok); }
+.coach-dots i.now { background: var(--accent); }
 .nav {
   font: 600 16px/1 var(--ui); width: 34px; height: 28px; border-radius: 7px; border: 1px solid var(--line);
   background: var(--bg); color: var(--fg); cursor: pointer;
@@ -130,7 +177,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .nav:disabled { opacity: .35; cursor: default; }
 .nav.go { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .phrase .ok { color: var(--ok); }
-.phrase .bad { color: var(--bad); text-decoration: underline; }
+.phrase .bad { color: var(--fg); text-decoration: underline dotted var(--warm); text-underline-offset: 3px; } /* calm, never red */
 .phrase .cur { color: var(--fg); border-bottom: 2px solid var(--accent); }
 .out {
   flex: 1; min-height: 44px; overflow-y: auto; font-size: 19px; line-height: 1.4; white-space: pre-wrap;
@@ -152,7 +199,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .out-toast {
   position: absolute; top: 44px; right: 0; width: max-content; max-width: min(250px, 70vw); z-index: 2;
   font-size: 13px; line-height: 1.35; padding: 7px 10px; border-radius: 9px; box-sizing: border-box;
-  background: var(--panel); border: 1px solid var(--bad); color: var(--fg);
+  background: var(--panel); border: 1px solid var(--line); color: var(--fg);
 }
 .out-toast.ok { border-color: var(--ok); }
 .app.left .out-toast { right: auto; left: 0; }
@@ -168,8 +215,28 @@ details b { color: var(--fg); font-weight: 500; }
   position: relative; flex: none; background: var(--kbd);
   padding-right: env(safe-area-inset-right, 0px); padding-left: env(safe-area-inset-left, 0px);
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  overflow: hidden; transition: height .24s ease;
 }
 .kbd svg { display: block; width: 100%; }
+/* retractable keyboard: it grows out of the thumb's corner and shrinks back into it */
+.kbd #svg { transition: transform .24s ease, opacity .2s ease; transform-origin: 100% 100%; }
+.app.left .kbd #svg { transform-origin: 0% 100%; }
+.kbd.shut #svg { transform: scale(.5); opacity: 0; }
+.app { position: relative; }
+.handle {
+  position: absolute; right: 0; bottom: 0; z-index: 6; width: 96px; height: 96px; padding: 0; border: 0;
+  background: transparent; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none;
+}
+.handle::before {
+  content: ''; position: absolute; right: 0; bottom: 0; width: 78px; height: 78px;
+  border-radius: 100% 0 0 0; background: var(--accent);
+}
+.handle svg { position: absolute; right: 12px; bottom: 12px; color: var(--accent-fg); }
+.app.left .handle { right: auto; left: 0; }
+.app.left .handle::before { right: auto; left: 0; border-radius: 0 100% 0 0; }
+.app.left .handle svg { right: auto; left: 12px; transform: scaleX(-1); }
+.handle[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .kbd, .kbd #svg { transition: none; } }
 .kbd .k { stroke-linejoin: round; transition: fill .06s; }
 .k.ch { fill: var(--key); stroke: var(--key); }
 .k.ch.zone { fill: var(--zone); stroke: var(--zone); }
@@ -239,6 +306,8 @@ details b { color: var(--fg); font-weight: 500; }
 .kbd .psep { stroke: var(--line); stroke-width: 1; }
 .kbd .pwedge { fill: transparent; }
 .kbd .pwedge.on { fill: var(--press); }
+.kbd .pwedge.tgt { fill: var(--zone); stroke: var(--accent); stroke-width: 2; } /* tutorial: where to flick */
+.kbd .parrow { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .8; pointer-events: none; }
 .kbd .phub { fill: var(--fn); }
 .kbd text.g1 { fill: var(--accent); font-weight: 600; }
 .kbd text.g2, .kbd text.g3 { fill: var(--accent); }
@@ -282,6 +351,23 @@ details b { color: var(--fg); font-weight: 500; }
 .res th, .res td { padding: 6px 5px; border-bottom: 1px solid var(--line); text-align: right; }
 .res th:first-child, .res td:first-child { text-align: left; }
 .res th { font-weight: 500; color: var(--muted); font-size: 12px; vertical-align: bottom; }
+/* visual schedule: done / now / next */
+.sched { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.sched li { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.sched li.done { color: var(--ok); border-color: var(--ok); }
+.sched li.now { color: var(--fg); border-color: var(--accent); background: var(--zone); font-weight: 600; }
+/* overview pictures */
+.diag { display: block; margin: 0 auto; width: 170px; height: 170px; max-width: 100%; flex: none; }
+.diag .ks { fill: var(--fn); } .diag .kk { fill: var(--key); } .diag .kz { fill: var(--zone); }
+.diag .kh1 { fill: var(--h1); } .diag .kh2 { fill: var(--h2); } .diag .kh3 { fill: var(--h3); }
+.diag .darrow { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.diag .ddot { fill: var(--accent); }
+.reachd { display: block; width: 100%; max-width: 320px; height: auto; aspect-ratio: 300 / 196; margin: 0 auto; flex: none; }
+.reachd .phone { fill: var(--panel); stroke: var(--line); }
+.reachd .kk { fill: var(--key); stroke: var(--line); stroke-width: .5; } .reachd .kz { fill: var(--zone); }
+.reachd .kfar { fill: var(--key); opacity: .3; stroke: var(--warm); stroke-width: .8; }
+.reachd .reach { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 4; }
+.reachd text { fill: var(--muted); font: 12px var(--ui); text-anchor: middle; }
 .star-demo { display: block; margin: 0 auto; width: 210px; height: 210px; max-width: 100%; flex: none; }
 .star-demo .pstar { fill: var(--key); stroke: var(--line); }
 .star-demo .psep { stroke: var(--line); }
@@ -302,40 +388,19 @@ details b { color: var(--fg); font-weight: 500; }
 <div class="app">
   <div class="top">
     <header>
-      <h1>Дуга</h1>
-      <span class="summary" id="summary"></span>
-      <button id="test-open" class="btn" type="button">Тест</button>
-      <button id="help-open" class="btn icon" type="button" aria-label="Как печатать">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.8 8a2.3 2.3 0 1 1 3.2 2.1c-.7.3-1 .8-1 1.5v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14.6" r="1" fill="currentColor"/></svg>
-      </button>
-      <button id="report-open" class="btn icon" type="button" aria-label="Замеры" aria-controls="report">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      <button id="gear" class="btn icon" type="button" aria-expanded="false" aria-controls="settings" aria-label="Настройки">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="5" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="13" cy="10" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="15" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/></svg>
+      <div class="hl"><h1>Дуга</h1><span class="summary" id="summary"></span></div>
+      <button id="learn-open" class="pill" type="button">Обучение</button>
+      <button id="gear" class="pill strong" type="button" aria-haspopup="dialog" aria-controls="settings-sheet">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="7" cy="5" r="2" fill="var(--bg)" stroke="currentColor" stroke-width="1.7"/><circle cx="13" cy="10" r="2" fill="var(--bg)" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="15" r="2" fill="var(--bg)" stroke="currentColor" stroke-width="1.7"/></svg>
+        Настройки
       </button>
     </header>
-    <div class="settings" id="settings" hidden>
-      <div class="seg" id="variants" role="group" aria-label="Раскладка"></div>
-      <div class="seg" role="group" aria-label="Способ ввода">
-        <button id="mode-swipe" type="button" aria-pressed="true">Свайп</button>
-        <button id="mode-flick" type="button" aria-pressed="false">Флик</button>
-        <button id="mode-mix" type="button" aria-pressed="false">Микс</button>
-        <button id="mode-ray" type="button" aria-pressed="false">Луч</button>
-        <button id="mode-pulse" type="button" aria-pressed="false">Пульс</button>
-      </div>
-      <div class="seg" role="group" aria-label="Язык">
-        <button id="lang-ru" type="button" aria-pressed="true">RU</button>
-        <button id="lang-en" type="button" aria-pressed="false">EN</button>
-      </div>
-      <div class="seg" role="group" aria-label="Рука">
-        <button id="side-left" type="button" aria-pressed="false">Левая</button>
-        <button id="side-right" type="button" aria-pressed="true">Правая</button>
-      </div>
-      <label class="size" for="size">Размер <input id="size" type="range" min="80" max="115" step="1" value="100"></label>
-      <button id="light" class="btn" type="button" aria-pressed="true">Свет</button>
+    <div class="coach" id="coach" hidden>
+      <div class="coach-top"><span class="coach-step" id="coach-step"></span><button class="linkbtn" id="coach-help" type="button">Подсказка</button><button class="linkbtn" id="coach-skip" type="button">Пропустить</button></div>
+      <div class="coach-text" id="coach-text" aria-live="polite"></div>
+      <div class="coach-dots" id="coach-dots" aria-hidden="true"></div>
     </div>
-    <div class="phrase">
+    <div class="phrase" id="phrase">
       <div class="head">
         <span class="lbl" id="dlbl"></span>
         <button id="reset" class="nav icon" type="button" aria-label="Набрать заново">↺</button>
@@ -365,8 +430,49 @@ details b { color: var(--fg); font-weight: 500; }
     <div class="glow warm" id="glow-warm"></div>
     <svg id="trail" class="trail" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline id="trail-line" points=""></polyline></svg>
   </div>
+  <button id="handle" class="handle" type="button" aria-label="Открыть клавиатуру" hidden>
+    <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M20 21A15 15 0 0 0 5 6M20 21A9 9 0 0 0 11 12M20 21a4 4 0 0 0-4-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
 </div>
 <div class="bubble" id="bubble" hidden></div>
+<section class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="sheet-card">
+    <div class="sh-head"><h2 id="settings-title">Настройки</h2><button id="settings-close" class="big primary" type="button">Готово</button></div>
+    <h3>Способ ввода</h3>
+    <div class="opts" role="group" aria-label="Способ ввода">
+      <button id="mode-swipe" class="opt" type="button" aria-pressed="true"><b>Свайп</b><span>Обычные клавиши, слово можно провести одним движением</span></button>
+      <button id="mode-flick" class="opt" type="button" aria-pressed="false"><b>Флик</b><span>Крупные клетки по 3–4 буквы, мелкая буква — смах</span></button>
+      <button id="mode-mix" class="opt" type="button" aria-pressed="false"><b>Микс</b><span>Обычные клавиши рядом, клетки вдали, подсказки слов</span></button>
+      <button id="mode-ray" class="opt" type="button" aria-pressed="false"><b>Луч</b><span>Как «Свайп», но следующая буква подсвечена</span></button>
+      <button id="mode-pulse" class="opt" type="button" aria-pressed="false"><b>Пульс</b><span>Звезда из 8 направлений: палец почти не двигается</span></button>
+    </div>
+    <div id="layout-row"><h3>Раскладка</h3><div class="seg" id="variants" role="group" aria-label="Раскладка"></div></div>
+    <h3>Язык и рука</h3>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Язык">
+        <button id="lang-ru" type="button" aria-pressed="true">RU</button>
+        <button id="lang-en" type="button" aria-pressed="false">EN</button>
+      </div>
+      <div class="seg" role="group" aria-label="Рука">
+        <button id="side-left" type="button" aria-pressed="false">Левая рука</button>
+        <button id="side-right" type="button" aria-pressed="true">Правая рука</button>
+      </div>
+    </div>
+    <h3>Вид</h3>
+    <label class="size" for="size">Размер клавиатуры <input id="size" type="range" min="80" max="115" step="1" value="100"></label>
+    <div class="row">
+      <button id="light" class="btn" type="button" aria-pressed="true">Свет при наборе</button>
+      <button id="autohide" class="btn" type="button" aria-pressed="false">Выдвижная клавиатура</button>
+    </div>
+    <p class="muted small">«Выдвижная»: клавиатура прячется, в углу остаётся ручка, за неё тянешь или нажимаешь — клавиатура выезжает. Спрятать — кнопка ⌄ у самого угла.</p>
+    <h3>Ещё</h3>
+    <div class="row">
+      <button id="test-open" class="btn" type="button">Пройти тест</button>
+      <button id="help-open" class="btn" type="button">Как печатать</button>
+      <button id="report-open" class="btn" type="button" aria-controls="report">Замеры</button>
+    </div>
+  </div>
+</section>
 <section class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title">
   <div class="sheet-card" id="sheet-card"></div>
 </section>
@@ -538,6 +644,7 @@ details b { color: var(--fg); font-weight: 500; }
   const PULSE_HOME = [262, 135];   // star centre: radius from the corner (base units) and angle, in the thumb zone
   const PULSE_R = 96;              // star radius
   const PULSE_PAD = 158;           // the pulse zone starts beyond the service rings
+  const PULSE_OUTER = 300;         // and ends just past the star, so «Пульс» needs less height and can be drawn bigger
   const P_MIN = 16;                // shorter = a tap
   const P_TURN = 14;               // the turn after the first stroke must be at least this long
   const P_SPOT = { c: [52, 0], l: [86, 14], r: [86, -14], b: [24, 0] }; // label: distance from centre, angle off the petal
@@ -588,25 +695,44 @@ details b { color: var(--fg); font-weight: 500; }
   const ptext = $('ptext'), dlbl = $('dlbl'), prevBtn = $('prev'), nextBtn = $('next'), vSeg = $('variants');
 
   let test = null; // the guided test while it runs, see «guided test» below
+  let tut = null;  // the tutorial while it runs, see «tutorial» below
   const shortMsgs = () => TEST_PHRASES[lang].map(x => ({ t: 'Короткое сообщение', x }));
   // Drills that fit the current mode: layout drills for the ring keyboards, star drills for «Пульс»
   function drills() {
-    if (test && test.typing) return test.phrases.map((x, i) => ({ t: `Тест · ${TEST_INFO[test.order[test.si]].name} · фраза ${i + 1} из ${test.phrases.length}`, x }));
+    if (test && test.typing) return test.phrases.map((x, i) => ({ t: `Тест · ${TEST_INFO[test.order[test.si]].name}`, x }));
     const own = mode === 'pulse' ? PULSE_DRILLS[lang] : mode === 'flick' ? [] : VARIANTS[variant][lang].drills;
     return [...own, ...shortMsgs(), ...COMMON[lang]];
   }
   const drill = () => { const d = drills(); return d[Math.min(di, d.length - 1)]; };
   // Same phrase counts as done regardless of case, ё/е and extra spaces
   const norm = s => s.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  // Success is a wide zone: a phrase typed to its full length with one small slip (two in long ones) counts.
+  // Accuracy still shows what happened; nobody is told they were wrong.
+  function editDist(a, b) {
+    const m = a.length, n = b.length, d = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      let prev = d[0]; d[0] = i;
+      for (let j = 1; j <= n; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; }
+    }
+    return d[n];
+  }
+  function closeEnough(typed, target) {
+    const a = norm(typed), b = norm(target);
+    if (a === b) return true;
+    if (a.length < b.length) return false; // still typing
+    return editDist(a, b) <= (b.length >= 20 ? 2 : 1);
+  }
   // Keep the same phrase when the drill list changes (switching mode or layout)
   function keepPhrase(prevX) { const i = drills().findIndex(d => d.x === prevX); di = i < 0 ? 0 : i; }
 
   function buildRings() {
     const V = VARIANTS[variant][lang];
     const spec = mode === 'flick' && V.flick ? V.flick.map(groups => ({ groups })) : V.rings;
+    // with the retractable keyboard the innermost ring also gets ⌄ (hide), right where the thumb rests
+    const svc = autohide ? [{ ...fnRings[0], keys: [...fnRings[0].keys, { t: 'hide', w: 1 }] }, fnRings[1]] : fnRings;
     const all = mode === 'pulse'
-      ? [...fnRings, { keys: [{ t: 'pulse', w: 1 }], band: [PULSE_PAD, BANDS[BANDS.length - 1][1]], zone: true }]
-      : [...fnRings, ...spec.map((s, i) => ({ ...s, band: BANDS[i], zone: i < ZONE_RINGS }))];
+      ? [...svc, { keys: [{ t: 'pulse', w: 1 }], band: [PULSE_PAD, PULSE_OUTER], zone: true }]
+      : [...svc, ...spec.map((s, i) => ({ ...s, band: BANDS[i], zone: i < ZONE_RINGS }))];
     rings = all.map((rg, ri) => {
       let keys;
       if (rg.freq) {
@@ -746,23 +872,50 @@ details b { color: var(--fg); font-weight: 500; }
 
   function layout() {
     const W = svg.clientWidth || kbd.clientWidth;
-    const s = Math.min(W, 440) / 400;
+    const R = mode === 'pulse' ? PULSE_OUTER : BANDS[BANDS.length - 1][1]; // outer radius of this keyboard
+    const s = Math.min(W, 440) / (R * 1.047);
     let k = s * userScale / 100;
     const pad = 4;
     const cx = W + pad;
-    k = Math.min(k, (cx - 6) / 382);
-    // short screens (iPhone SE, Safari with its bars): the keyboard takes at most ~56% of the height
+    k = Math.min(k, (cx - 6) / R);
+    // short screens (iPhone SE, Safari or Telegram with their bars): the keyboard takes at most ~52% of the height
     const vh = window.innerHeight || 800;
-    k = Math.min(k, vh * 0.56 / 386);
-    const outer = 382 * k;
+    k = Math.min(k, vh * 0.52 / (R + 4));
+    const outer = R * k;
     const H = Math.ceil(outer + 4);
     geo = { cx, cy: H + pad, k, W, H };
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.setAttribute('height', H);
     trailSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     trailSvg.setAttribute('height', H);
+    applyKbd();
     draw();
   }
+
+  // ---------- retractable keyboard ----------
+  let autohide = store.get('duga-autohide') === 'on', kOpen = !autohide;
+  function applyKbd() {
+    const show = !autohide || kOpen;
+    kbd.classList.toggle('shut', !show);
+    kbd.style.height = (show ? geo.H : 0) + 'px';
+    try { kbd.inert = !show; } catch (e) {}
+    $('handle').hidden = show;
+  }
+  function openKbd() { if (!kOpen) { kOpen = true; applyKbd(); } }
+  function closeKbd() { if (autohide && kOpen) { kOpen = false; bubble.hidden = true; applyKbd(); } }
+  // the handle: tap it, or pull it a little towards the middle of the screen
+  (() => {
+    const h = $('handle'); let st = null;
+    h.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, done: false }; try { h.setPointerCapture(e.pointerId); } catch (er) {} e.preventDefault(); });
+    h.addEventListener('pointermove', e => {
+      if (!st || st.done) return;
+      const dx = (e.clientX - st.x) * (side === 'left' ? 1 : -1), dy = st.y - e.clientY;
+      if (dx > 18 || dy > 18) { st.done = true; openKbd(); }
+    });
+    h.addEventListener('pointerup', () => { if (st && !st.done) openKbd(); st = null; });
+    h.addEventListener('pointercancel', () => { st = null; });
+  })();
+  $('outwrap').addEventListener('click', e => { if (!e.target.closest('button')) openKbd(); });
 
   function labelFor(key) {
     const up = shiftOn();
@@ -772,12 +925,14 @@ details b { color: var(--fg); font-weight: 500; }
       case 'lang': return lang.toUpperCase();
       case 'bksp': return '⌫';
       case 'enter': return '⏎';
+      case 'hide': return '⌄';
       case 'space': return UI[lang].space;
     }
   }
 
   // Base characters the current drill needs (ё → е etc.), to fade the keys it doesn't
   function neededKeys() {
+    if (tut) return { has: () => true }; // the tutorial shows everything; help marks the target instead
     const back = {};
     for (const [base, alt] of Object.entries(ALT[lang])) back[alt] = base;
     return new Set([...drill().x.toLowerCase()].map(c => back[c] || c));
@@ -866,16 +1021,26 @@ details b { color: var(--fg); font-weight: 500; }
       const [sx0, sy0] = around(ri, a0), [sx1, sy1] = around(PULSE_R, a0);
       el('line', { x1: sx0, y1: sy0, x2: sx1, y2: sy1, class: 'psep' }, svg);
     }
-    el('circle', { cx: hx, cy: hy, r: 13 * k, class: 'phub' }, svg);
+    // tutorial help: level 1 calmly marks where to flick, level 2 also draws the stroke as an example
+    const tg = tut && tut.help >= 1 ? tutTarget() : null;
+    if (tg && tg.petal >= 0) pulseWedges[tg.petal].classList.add('tgt');
+    el('circle', { cx: hx, cy: hy, r: 13 * k, class: tg && tg.kind === 'space' ? 'phub pwedge tgt' : 'phub' }, svg);
     el('text', { x: hx, y: hy, class: 'small', 'font-size': 11 * Math.max(k, .85) }, svg).textContent = '␣';
+    if (tg && tut.help >= 2 && tg.petal >= 0) {
+      const way = [PH, pulseSpot(tg.petal, 'c')];
+      if (tg.kind === 'l' || tg.kind === 'r') way.push(pulseSpot(tg.petal, tg.kind));
+      if (tg.kind === 'b') way.push(pulseSpot(tg.petal, 'b'));
+      el('polyline', { points: way.map(p => B(...p).join(',')).join(' '), class: 'parrow' }, svg);
+    }
     const up = shiftOn(), SIZE = { c: 21, l: 14, r: 14, b: 11 };
     for (let p = 0; p < 8; p++) for (const kind of ['c', 'l', 'r', 'b']) {
       const v = PULSE[lang][p][kind];
       if (!v) continue;
       const [x, y] = B(...pulseSpot(p, kind));
       const cls = [kind === 'c' ? '' : 'small'];
-      if (hints && hints.has(v)) cls.push('g' + hints.get(v));
-      if (!need.has(v)) cls.push('dim');
+      if (tg && tg.petal === p && tg.kind === kind) cls.push('g1');
+      else if (hints && hints.has(v)) cls.push('g' + hints.get(v));
+      if (!need.has(v) && !(tg && tg.petal === p)) cls.push('dim');
       const t = el('text', { x, y, class: cls.join(' ').trim(), 'font-size': SIZE[kind] * Math.max(k, .85) }, svg);
       t.textContent = up ? v.toUpperCase() : v;
     }
@@ -911,7 +1076,7 @@ details b { color: var(--fg); font-weight: 500; }
     $('outwrap').classList.toggle('has', text.length > 0);
     const all = drills(), d = drill(), p = d.x;
     dlbl.textContent = `${di + 1}/${all.length} · ${d.t}`;
-    const done = norm(text) === norm(p), inTest = !!(test && test.typing);
+    const done = closeEnough(text, p), inTest = !!(test && test.typing);
     prevBtn.disabled = inTest || di === 0;
     nextBtn.disabled = !inTest && di === all.length - 1; // in the test › skips the phrase
     nextBtn.setAttribute('aria-label', inTest ? 'Пропустить фразу' : 'Следующее упражнение');
@@ -931,11 +1096,12 @@ details b { color: var(--fg); font-weight: 500; }
     paintCands();
     stats();
     draw();
+    if (tut && !tut.lock && text.length !== tut.seen) { const grew = text.length > tut.seen; tut.seen = text.length; if (grew) tutOnType(); }
   }
   function stats() {
     const mins = t0 ? (Date.now() - t0) / 60000 : 0;
     const cpm = mins > 0.03 ? Math.round(text.length / mins) : 0;
-    const done = norm(text) === norm(drill().x), f = liveFigures(text.length);
+    const done = closeEnough(text, drill().x), f = liveFigures(text.length);
     statsEl.innerHTML = `<span><b>${cpm || '—'}</b> зн/мин</span><span><b>${fixes}</b> исправл.</span>` +
       (text ? `<span><b>${f.tpc.toFixed(2)}</b> касан./знак</span><span><b>${f.mm.toFixed(1)}</b> мм/знак</span>` +
         `<span><b>${Math.round(f.far)}%</b> дальн. зона</span>` : '') +
@@ -1153,7 +1319,13 @@ details b { color: var(--fg); font-weight: 500; }
     fadeTimer = setTimeout(() => { glowCool.style.opacity = 0; glowWarm.style.opacity = 0; recent.length = 0; }, 1600);
   }
   // Ring on the key that took the touch; warm when the touch landed near the key's edge
+  // flash limit: at most 3 rings a second, always (people sensitive to flicker)
+  const rippleTimes = [];
   function ripple(key, e) {
+    const now = performance.now();
+    while (rippleTimes.length && now - rippleTimes[0] > 1000) rippleTimes.shift();
+    if (rippleTimes.length >= 3) return;
+    rippleTimes.push(now);
     const kr = kbd.getBoundingClientRect(), sr = svg.getBoundingClientRect();
     let x = e.clientX - kr.left, y = e.clientY - kr.top, warm = false;
     if (key.t === 'ch' || key.t === 'grp') {
@@ -1185,7 +1357,7 @@ details b { color: var(--fg); font-weight: 500; }
 
   function charOut(st) {
     if (st.key.t === 'pulse') {
-      const res = pulseResolve(st.pts);
+      const res = pulseRes(st.pts);
       if (res.kind === 'space') return ' ';
       const alt = pulseAlt(lang), c = st.long && alt[res.v] ? alt[res.v] : res.v;
       return shiftOn() ? c.toUpperCase() : c;
@@ -1199,7 +1371,7 @@ details b { color: var(--fg); font-weight: 500; }
   function pulseHold(st) {
     clearTimeout(st.timer);
     st.timer = setTimeout(() => {
-      const res = pulseResolve(st.pts);
+      const res = pulseRes(st.pts);
       if (res.kind !== 'space' && pulseAlt(lang)[res.v]) { st.long = true; showBubble(st, charOut(st)); buzz(); }
     }, 420);
   }
@@ -1225,7 +1397,7 @@ details b { color: var(--fg); font-weight: 500; }
     if (k.t === 'pulse') {
       st.anchor = st.p0.slice();
       showBubble(st, bubbleLabel(charOut(st)));
-      lightWedge(pulseResolve(st.pts).petal);
+      lightWedge(pulseRes(st.pts).petal);
       pulseHold(st);
     } else if (k.t === 'grp') {
       showBubble(st, charOut(st));
@@ -1251,7 +1423,7 @@ details b { color: var(--fg); font-weight: 500; }
       st.pts.push(b[0], b[1]);
       if (Math.hypot(b[0] - st.anchor[0], b[1] - st.anchor[1]) > 4) { st.anchor = b; st.long = false; pulseHold(st); }
       showBubble(st, bubbleLabel(charOut(st)));
-      lightWedge(pulseResolve(st.pts).petal);
+      lightWedge(pulseRes(st.pts).petal);
       return;
     }
     if (st.key.t === 'grp') {
@@ -1343,6 +1515,7 @@ details b { color: var(--fg); font-weight: 500; }
         break;
       }
       case 'lang': setLang(lang === 'ru' ? 'en' : 'ru'); break;
+      case 'hide': closeKbd(); break;
       case 'bksp': draw(); break;
     }
   }
@@ -1379,12 +1552,24 @@ details b { color: var(--fg); font-weight: 500; }
   const setupParts = () => mode === 'pulse' ? [MODE_NAMES[mode]] : [VARIANTS[variant].name[lang], MODE_NAMES[mode]];
   function paintSummary() {
     $('summary').textContent = [...setupParts(), lang.toUpperCase(), side === 'left' ? 'левая' : 'правая'].join(' · ');
-    vSeg.hidden = mode === 'pulse';
+    $('layout-row').hidden = mode === 'pulse';
   }
-  $('gear').onclick = () => {
-    const s = $('settings'); s.hidden = !s.hidden;
-    $('gear').setAttribute('aria-expanded', !s.hidden);
+  // Settings live in their own sheet; anything that leads elsewhere closes it first
+  const setSheet = $('settings-sheet');
+  const openSettings = () => { setSheet.hidden = false; setSheet.querySelector('.sheet-card').scrollTop = 0; };
+  const closeSettings = () => { setSheet.hidden = true; };
+  $('gear').onclick = openSettings;
+  $('settings-close').onclick = closeSettings;
+  setSheet.addEventListener('click', e => {
+    if (e.target === setSheet || e.target.closest('#test-open, #help-open, #report-open')) closeSettings();
+  });
+  $('autohide').onclick = () => {
+    autohide = !autohide; store.set('duga-autohide', autohide ? 'on' : 'off');
+    $('autohide').setAttribute('aria-pressed', autohide);
+    kOpen = !autohide; // switching it on shows the effect at once: the keyboard tucks into the corner
+    buildRings(); layout(); render();
   };
+  $('autohide').setAttribute('aria-pressed', autohide);
   // ---------- measurements report ----------
   let heatOn = store.get('duga-heat') === 'on';
   const avgOf = (list, k) => { const v = list.map(a => a[k]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
@@ -1457,7 +1642,7 @@ details b { color: var(--fg); font-weight: 500; }
     if (!sys.t0 && v) sys.t0 = Date.now();
     if (v.length > sys.prev) sys.inserted += v.length - sys.prev;
     sys.prev = v.length;
-    if (v.trim() === phrase) {
+    if (closeEnough(v, phrase)) {
       sys.done = true;
       const ms = Date.now() - sys.t0, n = phrase.length;
       const a = { at: Date.now(), cfg: 'Системная клавиатура', lang, layout: 'system', mode: 'system', side: null, phrase, ms,
@@ -1630,12 +1815,273 @@ details b { color: var(--fg); font-weight: 500; }
     return `<p class="eyebrow">Привет</p><h2 id="sheet-title">Дуга — клавиатура для одной руки</h2>
       <p>Держи телефон одной рукой и печатай большим пальцем. Клавиши расходятся дугой вокруг пальца, чтобы ему реже приходилось тянуться.</p>
       <h3>Какой рукой будешь печатать?</h3><div class="choice">${b('left', 'Левой')}${b('right', 'Правой')}</div>
-      <button class="big primary" type="button" data-act="test-start">Пройти тест · 5–8 минут</button>
-      <button class="big" type="button" data-act="welcome-try">Просто попробовать</button>
+      <button class="big primary" type="button" data-act="welcome-how">Показать, как это работает · 2 минуты</button>
+      <button class="big" type="button" data-act="test-start">Сразу к тесту · 5–8 минут</button>
+      <button class="linkbtn" type="button" data-act="welcome-try">Просто попробовать</button>
       <p class="muted">Тест сравнит четыре способа ввода Дуги с твоей обычной клавиатурой. В конце можно отправить результат автору. Набранный текст никуда не уходит.</p>`;
   }
   acts.side = b => { setSide(b.dataset.v); pressOnly(b, 'side'); };
   acts['welcome-try'] = () => { store.set('duga-welcome', '1'); closeSheet(); };
+  acts['welcome-how'] = () => { store.set('duga-welcome', '1'); overview(0); };
+
+  // ---------- tutorial ----------
+  // Built on our teaching principles: nothing is ever «wrong» (we say what came out and offer to try
+  // again); success is required and the target zone is wide; help comes as a ladder — on your own →
+  // a calm mark on the target → an example stroke → «hand in hand» (the stroke is gently pulled to the
+  // target) — and is offered, never forced, with «not now» remembered; help steps down again after a
+  // success; levels go by depth, not age; a visible schedule shows what is done, now and next.
+  const HELP_NAMES = ['', 'подсказка', 'пример', 'рука в руке'];
+  // screen direction words for a base-units angle, mirrored for the left hand
+  function dirWord(deg) {
+    const a = ((side === 'left' ? 180 - deg : deg) % 360 + 360) % 360;
+    return ['вправо', 'вверх-вправо', 'вверх', 'вверх-влево', 'влево', 'вниз-влево', 'вниз', 'вниз-вправо'][Math.round(a / 45) % 8];
+  }
+  function pulseFind(ch) {
+    if (ch === ' ') return { petal: -1, kind: 'space', v: ' ' };
+    const c = ch.toLowerCase(), base = { 'ё': 'е', 'ъ': 'ь', '!': '?' }[c] || c;
+    for (let p = 0; p < 8; p++) for (const kind of ['c', 'l', 'r', 'b']) if (PULSE[lang][p][kind] === base) return { petal: p, kind, v: base };
+    return null;
+  }
+  function tutTarget() {
+    if (!tut) return null;
+    const st = tut.steps[tut.i];
+    if (!st) return null;
+    if (st.word) { const next = norm(st.word)[norm(text).length]; return next ? pulseFind(next) : null; }
+    return st.target;
+  }
+  // «hand in hand»: with the strongest help a stroke roughly in the target's direction counts as the target
+  function strokeInfo(pts) {
+    const ox = pts[0], oy = pts[1], n = pts.length / 2;
+    let far = 0, fx = 0, fy = 0;
+    for (let i = 1; i < n; i++) { const x = pts[2 * i] - ox, y = pts[2 * i + 1] - oy, d = Math.hypot(x, y); if (d > far) { far = d; fx = x; fy = y; } }
+    const ex = pts[pts.length - 2] - ox, ey = pts[pts.length - 1] - oy, L = Math.hypot(ex, ey) || 1;
+    let dev = 0;
+    for (let i = 1; i < n; i++) dev = Math.max(dev, Math.abs((pts[2 * i] - ox) * -ey / L + (pts[2 * i + 1] - oy) * ex / L));
+    return { far, ang: Math.atan2(fy, fx) / D, endRatio: far ? Math.hypot(ex, ey) / far : 1, dev };
+  }
+  function pulseRes(pts) {
+    const r = pulseResolve(pts), t = tut && tut.help >= 3 ? tutTarget() : null;
+    if (!t || r.v === t.v) return r;
+    const info = strokeInfo(pts);
+    if (t.kind === 'space') return info.far < P_MIN && Math.hypot(pts[0] - PH[0], pts[1] - PH[1]) < PULSE_R * 0.6 ? t : r;
+    if (info.far < P_MIN) return r;
+    const da = Math.abs(((info.ang - t.petal * 45) % 360 + 540) % 360 - 180);
+    if (da > 40) return r;
+    if (t.kind === 'c' || (t.kind === 'b' ? info.endRatio < 0.75 : (r.kind === 'l' || r.kind === 'r' || info.dev >= 5))) return { ...t };
+    return r;
+  }
+
+  const LEVELS = ['Первые смахи', 'Мелкие буквы', 'Слова'];
+  function pulseSteps(level) {
+    const P = PULSE[lang], d = p => dirWord(p * 45);
+    const C = p => ({ say: `Смахни <b>${d(p)}</b> — получится «${P[p].c}».`, want: P[p].c, target: { petal: p, kind: 'c', v: P[p].c } });
+    const T = (p, k) => ({ say: `Смахни ${d(p)} к «${P[p].c}» и сразу <b>поверни ${dirWord(p * 45 + (k === 'l' ? 90 : -90))}</b> — получится «${P[p][k]}».`, want: P[p][k], target: { petal: p, kind: k, v: P[p][k] } });
+    const Bk = p => ({ say: `Смахни ${d(p)} к «${P[p].c}» и <b>верни палец назад</b> — получится «${P[p].b}».`, want: P[p].b, target: { petal: p, kind: 'b', v: P[p].b } });
+    if (level === 0) return [
+      { ...C(2), say: `Поставь палец в любое место светлой зоны и смахни <b>${d(2)}</b> — получится «${P[2].c}».` },
+      C(1), C(5), C(0),
+      { say: 'Коснись <b>центра звезды</b> — это пробел.', want: ' ', target: { petal: -1, kind: 'space', v: ' ' } },
+    ];
+    if (level === 1) return [
+      T(0, 'l'), T(0, 'r'), T(2, 'l'), Bk(1),
+      { say: `Смахни ${d(5)} к «${P[5].c}» и <b>задержи палец</b>, пока над ним не появится «${lang === 'ru' ? 'ё' : P[5].c}».`, want: lang === 'ru' ? 'ё' : P[5].c, target: { petal: 5, kind: 'c', v: P[5].c } },
+    ];
+    const words = lang === 'ru' ? ['сон', 'тесто', 'мама', 'привет'] : ['sea', 'tea', 'notes', 'hello'];
+    return words.map(w => ({ say: `Набери слово «<b>${w}</b>». Если сбился — сотри ⌫, это нормально.`, word: w }));
+  }
+  function tutStart(level) {
+    closeSheet(); closeSettings();
+    const before = tut ? tut.before : { variant, mode, di };
+    tut = { level, steps: pulseSteps(level), i: 0, help: 0, misses: 0, seen: 0, lock: false, before, note: '', offer: false };
+    applySetup('syl', 'pulse');
+    openKbd();
+    $('phrase').hidden = true; $('coach').hidden = false;
+    clearText(); render(); paintCoach();
+  }
+  function paintCoach() {
+    if (!tut) return;
+    const st = tut.steps[tut.i], n = tut.steps.length;
+    $('coach-step').textContent = `${LEVELS[tut.level]} · ${Math.min(tut.i + 1, n)}/${n}` + (tut.help ? ` · ${HELP_NAMES[tut.help]}` : '');
+    $('coach-step').title = `Пульс, уровень ${tut.level + 1} из ${LEVELS.length}`;
+    let h = st ? st.say : '';
+    if (tut.note) h += `<br><span class="${tut.ok ? 'done' : ''}">${tut.note}</span>`;
+    if (tut.offer) h += `<div class="coach-acts"><button type="button" class="primary" data-coach="help">${tut.help ? 'Помочь ещё' : 'Подсказать'}</button><button type="button" data-coach="no">Не сейчас</button></div>`;
+    $('coach-text').innerHTML = h;
+    $('coach-dots').innerHTML = tut.steps.map((_, i) => `<i class="${i < tut.i ? 'done' : i === tut.i ? 'now' : ''}"></i>`).join('');
+  }
+  $('coach').addEventListener('click', e => {
+    const b = e.target.closest('[data-coach]');
+    if (!b || !tut) return;
+    if (b.dataset.coach === 'help') { tut.help = Math.min(3, tut.help + 1); tut.offer = false; tut.note = helpNote(); }
+    else { tut.offer = false; tut.note = 'Хорошо. Если понадобится — «Подсказка» сверху.'; store.set('duga-help-no', '1'); }
+    paintCoach(); draw();
+  });
+  const helpNote = () => ['', 'Нужное направление подсвечено.', 'Стрелка показывает движение.', 'Теперь я помогаю: достаточно смахнуть примерно в ту сторону.'][tut.help];
+  $('coach-skip').onclick = () => tutEnd(false);
+  // the person can always ask for help, even after «not now»
+  $('coach-help').addEventListener('click', () => { if (tut && tut.help < 3) { tut.help++; tut.note = helpNote(); paintCoach(); draw(); } });
+  function tutOnType() {
+    const st = tut.steps[tut.i];
+    if (!st) return;
+    if (st.word) {
+      if (closeEnough(text, st.word)) return tutSuccess();
+      const a = norm(text), b = norm(st.word);
+      if (a && !b.startsWith(a)) tutMiss(text.slice(-1), true);
+      else { tut.note = ''; paintCoach(); }
+      return;
+    }
+    const got = text.slice(-1).toLowerCase();
+    if (got === st.want) tutSuccess(); else tutMiss(got, false);
+  }
+  function tutSuccess() {
+    tut.lock = true; tut.ok = true; tut.offer = false; tut.misses = 0;
+    tut.note = 'Получилось ✓';
+    paintCoach();
+    setTimeout(() => {
+      if (!tut) return;
+      tut.i++; tut.ok = false; tut.note = ''; tut.lock = false;
+      tut.help = Math.max(0, tut.help - 1); // help steps down after a success
+      clearText(); tut.seen = 0;
+      if (tut.i >= tut.steps.length) return tutLevelDone();
+      render(); paintCoach();
+    }, 700);
+  }
+  function tutMiss(got, keep) {
+    tut.misses++;
+    const shown = got === ' ' ? 'пробел' : `«${got}»`;
+    tut.note = keep ? `Получилась ${shown}. Сотри ⌫ и попробуй ещё раз.` : `Получилась ${shown}. Попробуй ещё раз.`;
+    tut.offer = tut.help < 3 && store.get('duga-help-no') !== '1';
+    paintCoach();
+    if (!keep) { tut.lock = true; setTimeout(() => { if (!tut) return; clearText(); tut.seen = 0; tut.lock = false; render(); }, 650); }
+  }
+  function tutLevelDone() {
+    const lv = tut.level;
+    store.set('duga-tut', String(Math.max(lv + 1, Number(store.get('duga-tut')) || 0)));
+    const next = lv + 1 < LEVELS.length;
+    openSheet(`<p class="eyebrow">Пульс · уровень ${lv + 1} из ${LEVELS.length}</p><h2 id="sheet-title">«${LEVELS[lv]}» — получилось!</h2>
+      ${schedule(LEVELS.map((l, i) => ({ name: l, state: i <= lv ? 'done' : i === lv + 1 ? 'now' : '' })))}
+      <p>${next ? 'Удобно так? Можно повторить этот уровень ещё раз или идти дальше — как хочешь.' : 'Теперь ты знаешь весь «Пульс». Попробуй набрать что-нибудь своё или пройди тест.'}</p>
+      ${next ? `<button class="big primary" type="button" data-act="tut-next">Дальше: «${LEVELS[lv + 1]}»</button>` : '<button class="big primary" type="button" data-act="tut-free">Печатать свободно</button><button class="big" type="button" data-act="test-start">Пройти тест</button>'}
+      <button class="big" type="button" data-act="tut-again">Ещё раз «${LEVELS[lv]}»</button>
+      <button class="linkbtn" type="button" data-act="tut-end">Закончить обучение</button>`);
+  }
+  acts['tut-next'] = () => tutStart(tut.level + 1);
+  acts['tut-again'] = () => tutStart(tut.level);
+  acts['tut-free'] = () => tutEnd(true);
+  acts['tut-end'] = () => tutEnd(true);
+  acts['tut-level'] = b => { tut = null; tutStart(Number(b.dataset.v)); };
+  // stay in «Пульс» after learning it; skipping restores what was there before
+  function tutEnd(keep) {
+    if (!tut) { closeSheet(); return; }
+    const b = tut.before;
+    tut = null;
+    $('coach').hidden = true; $('phrase').hidden = false;
+    if (!keep) applySetup(b.variant, b.mode);
+    di = keep ? 0 : b.di;
+    clearText(); render(); closeSheet();
+  }
+  // a small «what is done / now / next» strip
+  function schedule(items) {
+    return '<ol class="sched">' + items.map(it => `<li class="${it.state}">${it.state === 'done' ? '✓ ' : ''}${esc(it.name)}</li>`).join('') + '</ol>';
+  }
+
+  // ---------- overview: how the modes differ, with pictures ----------
+  function miniArc(kind) {
+    const S = 0.46, C = 184, X = x => side === 'left' ? 190 - x : x, sw = side === 'left' ? 1 : 0;
+    const P = (r, a) => [X(C + r * S * Math.cos(a * D)), C - r * S * Math.sin(a * D)];
+    const sector = (r0, r1, a0, a1, cls) => {
+      const g = 1.4, [x0, y0] = P(r1, a0 + g), [x1, y1] = P(r1, a1 - g), [x2, y2] = P(r0, a1 - g), [x3, y3] = P(r0, a0 + g);
+      return `<path class="${cls}" d="M${x0},${y0}A${r1 * S},${r1 * S} 0 0 ${sw} ${x1},${y1}L${x2},${y2}A${r0 * S},${r0 * S} 0 0 ${1 - sw} ${x3},${y3}Z"/>`;
+    };
+    const ring = (ri, n, cls) => {
+      const [r0, r1] = BANDS[ri]; let o = '';
+      for (let i = 0; i < n; i++) o += sector(r0 + 2, r1 - 2, 91 + 88 * i / n, 91 + 88 * (i + 1) / n, typeof cls === 'function' ? cls(i) : cls);
+      return o;
+    };
+    const mid = (ri, i, n) => P((BANDS[ri][0] + BANDS[ri][1]) / 2, 91 + 88 * (i + .5) / n);
+    let s = '<svg class="diag" viewBox="0 0 190 190" aria-hidden="true">';
+    s += sector(30, 100, 91, 135, 'ks') + sector(30, 100, 135, 179, 'ks') + sector(100, 158, 91, 112, 'ks') + sector(100, 158, 112, 160, 'ks') + sector(100, 158, 160, 179, 'ks');
+    const z = ri => ri < 2 ? 'kz' : 'kk';
+    if (kind === 'swipe' || kind === 'ray') [9, 11, 10, 7].forEach((n, ri) => {
+      s += ring(ri, n, i => kind === 'ray' && ri === 1 && (i === 4 || i === 5) ? (i === 4 ? 'kh1' : 'kh2') : kind === 'ray' && ri === 0 && i === 6 ? 'kh3' : z(ri));
+    });
+    if (kind === 'flick') [3, 4, 3, 2].forEach((n, ri) => { s += ring(ri, n, z(ri)); });
+    if (kind === 'mix') { s += ring(0, 9, 'kz') + ring(1, 11, 'kz') + ring(2, 3, 'kk') + ring(3, 2, 'kk'); }
+    if (kind === 'swipe') s += `<polyline class="darrow" points="${[mid(0, 4, 9), mid(1, 7, 11), mid(0, 7, 9), mid(1, 2, 11)].map(p => p.join(',')).join(' ')}"/>`;
+    if (kind === 'flick' || kind === 'mix') {
+      const ri = kind === 'flick' ? 0 : 2, n = 3, [cx, cy] = mid(ri, 1, n), [tx, ty] = P((BANDS[ri][0] + BANDS[ri][1]) / 2, 91 + 88 * 1.5 / n + 12);
+      s += `<circle class="ddot" cx="${cx}" cy="${cy}" r="4"/><polyline class="darrow" points="${cx},${cy} ${tx},${ty}"/>`;
+    }
+    return s + '</svg>';
+  }
+  // the usual keyboard spans the whole width: one thumb cannot reach its far side; Дуга stays inside the reach
+  function reachDiagram() {
+    const ph = (x0, inner) => `<rect class="phone" x="${x0}" y="4" width="118" height="164" rx="14"/>` + inner;
+    let left = '', right = '';
+    const R = 92, cx = 118 + 4, cy = 168;
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 10; i++) {
+      const x = 10 + i * 10.6, y = 112 + row * 17, far = Math.hypot(x + 4.5 - cx, y + 7 - cy) > R;
+      left += `<rect class="${far ? 'kfar' : 'kk'}" x="${x}" y="${y}" width="9" height="14" rx="2"/>`;
+    }
+    left += `<path class="reach" d="M${cx - R},${cy} A${R},${R} 0 0 1 ${cx},${cy - R}"/>`;
+    const C2x = 118 + 4 + 172, P2 = (r, a) => [C2x + r * Math.cos(a * D), cy - r * Math.sin(a * D)];
+    [[18, 40, 2], [44, 64, 4], [68, 86, 5]].forEach(([r0, r1, n]) => {
+      for (let i = 0; i < n; i++) {
+        const a0 = 91 + 88 * i / n + 1.5, a1 = 91 + 88 * (i + 1) / n - 1.5;
+        const [x0, y0] = P2(r1, a0), [x1, y1] = P2(r1, a1), [x2, y2] = P2(r0, a1), [x3, y3] = P2(r0, a0);
+        right += `<path class="kz" d="M${x0},${y0}A${r1},${r1} 0 0 0 ${x1},${y1}L${x2},${y2}A${r0},${r0} 0 0 1 ${x3},${y3}Z"/>`;
+      }
+    });
+    right += `<path class="reach" d="M${C2x - R},${cy} A${R},${R} 0 0 1 ${C2x},${cy - R}"/>`;
+    const svgS = `<svg class="reachd" viewBox="0 0 300 196" role="img" aria-label="Слева обычная клавиатура: дальние буквы за пределами дуги, куда достаёт большой палец. Справа Дуга: все клавиши внутри этой дуги.">`;
+    return svgS + ph(4, left) + ph(176, right) + `<text x="63" y="190">обычная</text><text x="235" y="190">Дуга</text></svg>`;
+  }
+  const OVERVIEW = [
+    { t: 'Зачем Дуга', pic: reachDiagram, html: () => `<p>Обычная клавиатура растянута на всю ширину экрана. Одной рукой большой палец тянется к дальним буквам — они на картинке бледные, за дугой досягаемости.</p>
+      <p>В Дуге клавиши лежат дугой вокруг пальца, из нижнего угла: всё в пределах досягаемости, и каждая клавиша — целый сектор, в который трудно промахнуться.</p>
+      <p class="muted">Чем платим: раскладку придётся немного выучить, и пока Дуга работает только внутри своей страницы (набранное копируется кнопкой у текста).</p>` },
+    { m: 'swipe', t: 'Свайп', how: 'Тап по клавише или веди палец по буквам слова, не отрывая — слово вставится целиком.', plus: 'Ближе всего к Яндекс Клавиатуре и Gboard. Можно оставить привычный порядок ЙЦУКЕН.', minus: 'Дальние кольца всё равно приходится доставать.' },
+    { m: 'flick', t: 'Флик', how: 'Тап — крупная буква клетки, короткий смах в сторону мелкой — она.', plus: 'Клеток всего 10–11 и они крупные: целиться почти не надо. Слова тоже можно провести.', minus: 'Мелкие буквы надо запомнить; редкая буква — это смах, он чуть медленнее тапа.' },
+    { m: 'mix', t: 'Микс', how: 'Рядом — обычные клавиши, вдали — крупные клетки. Над клавиатурой подсказки слов, точка и запятая — смахом по пробелу.', plus: 'Баланс привычного и удобного: тянуться никуда не нужно.', minus: 'Два вида клавиш сразу — первые минуты мозг переключается.' },
+    { m: 'ray', t: 'Луч', how: 'Как «Свайп», но после первой буквы три вероятные следующие подсвечены.', plus: 'Раскладка запоминается сама, глазу не надо искать букву.', minus: 'На редких словах и именах подсветка не помогает. Путь пальца она не сокращает.' },
+    { m: 'pulse', t: 'Пульс', pic: () => starDemo(), how: 'Звезда из 8 направлений. Прямой смах — крупная буква, смах с поворотом — мелкая. Палец ставишь куда удобно.', plus: 'Палец почти не двигается и не тянется в дальние углы; целиться не нужно — важно только направление.', minus: 'Самый непривычный: нужно обучение. Восемь направлений — небрежным смахом можно попасть в соседнюю букву.' },
+    { t: 'С чего начать', html: () => `<p>Ничего не «неправильно»: попробуй и выбери то, что удобно именно тебе.</p>
+      <ul><li>Привычнее всего — <b>Свайп</b> с раскладкой ЙЦУКЕН.</li><li>Меньше всего работы пальцу — <b>Пульс</b>; для него есть короткое обучение.</li><li>Хочешь сравнить честно — <b>тест</b>: 5–8 минут, результат можно отправить автору.</li></ul>` },
+  ];
+  let ovI = 0;
+  function overview(i) {
+    ovI = Math.max(0, Math.min(OVERVIEW.length - 1, i));
+    const c = OVERVIEW[ovI], last = ovI === OVERVIEW.length - 1;
+    let h = `<p class="eyebrow">Чем отличаются способы · ${ovI + 1} из ${OVERVIEW.length}</p>
+      <div class="coach-dots" aria-hidden="true">${OVERVIEW.map((_, j) => `<i class="${j < ovI ? 'done' : j === ovI ? 'now' : ''}"></i>`).join('')}</div>
+      <h2 id="sheet-title">${c.t}</h2>`;
+    if (c.pic || c.m) h += (c.pic ? c.pic() : miniArc(c.m));
+    if (c.html) h += c.html();
+    else h += `<p><b>Как:</b> ${c.how}</p><p><b>Плюс:</b> ${c.plus}</p><p><b>Минус:</b> ${c.minus}</p>`;
+    if (c.m) h += `<button class="big" type="button" data-act="ov-try" data-v="${c.m}">Попробовать «${c.t}»</button>`;
+    if (last) h += `<button class="big primary" type="button" data-act="tut-level" data-v="0">Научиться «Пульсу»</button><button class="big" type="button" data-act="test-start">Пройти тест</button>`;
+    h += `<div class="choice">${ovI ? '<button class="big" type="button" data-act="ov-prev">‹ Назад</button>' : ''}${last ? '<button class="big" type="button" data-act="close">Закрыть</button>' : '<button class="big primary" type="button" data-act="ov-next">Дальше ›</button>'}</div>`;
+    openSheet(h, null, true);
+  }
+  acts['ov-next'] = () => overview(ovI + 1);
+  acts['ov-prev'] = () => overview(ovI - 1);
+  acts['ov-try'] = b => { closeSheet(); setMode(b.dataset.v); if (b.dataset.v === 'swipe' && variant !== 'qwerty') setVariant('qwerty'); openKbd(); };
+  acts['ov-open'] = () => overview(0);
+
+  // the learning menu: levels by depth, start anywhere
+  function learnHTML() {
+    const done = Number(store.get('duga-tut')) || 0;
+    const lv = (i, mins) => `<button class="opt" type="button" data-act="tut-level" data-v="${i}" aria-pressed="false"><b>${i < done ? '✓ ' : ''}Пульс ${i + 1}. ${LEVELS[i]}</b><span>${['прямые смахи и пробел', 'повороты, «туда и обратно», удержание', 'целые слова'][i]} · ${mins}</span></button>`;
+    return `<p class="eyebrow">Обучение</p><h2 id="sheet-title">С чего начнём?</h2>
+      <p class="muted">Можно начать с любого пункта. Начинать с первого — нормально в любом возрасте.</p>
+      <div class="opts">
+        <button class="opt" type="button" data-act="ov-open" aria-pressed="false"><b>Чем отличаются способы</b><span>картинки, плюсы и минусы · 2 минуты чтения</span></button>
+        ${lv(0, 'около минуты')}${lv(1, '2 минуты')}${lv(2, '2 минуты')}
+        <button class="opt" type="button" data-act="test-start" aria-pressed="false"><b>Пройти тест</b><span>сравнить способы со своей клавиатурой · 5–8 минут</span></button>
+      </div>
+      <button class="linkbtn" type="button" data-act="close">Закрыть</button>`;
+  }
+  $('learn-open').onclick = () => { if (tut) { tut.note = ''; paintCoach(); } openSheet(learnHTML(), null, true); };
 
   // ---------- guided test ----------
   // Own keyboard first (baseline, and the phrases become familiar), then the four Дуга set-ups in a
@@ -1652,6 +2098,7 @@ details b { color: var(--fg); font-weight: 500; }
   const STRAIN = { low: 'не устал', mid: 'немного устал', high: 'устал' };
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function startTest() {
+    if (tut) tutEnd(true);
     store.set('duga-welcome', '1');
     test = {
       at: Date.now(), lang, side, order: ['system', ...shuffle(['pulse', 'flick', 'ray', 'qwerty'])],
@@ -1659,12 +2106,13 @@ details b { color: var(--fg); font-weight: 500; }
       before: { variant, mode, di },
     };
     test.order.forEach(id => { test.res[id] = { attempts: [], skipped: 0, rating: null, strain: null }; });
-    $('settings').hidden = true; $('gear').setAttribute('aria-expanded', 'false');
+    closeSettings();
     testIntro();
   }
   function testIntro() {
     const id = test.order[test.si], n = test.order.length;
-    let h = `<p class="eyebrow">Тест · шаг ${test.si + 1} из ${n}</p><h2 id="sheet-title">${testName(id)}</h2>`;
+    let h = `<p class="eyebrow">Тест · шаг ${test.si + 1} из ${n}</p><h2 id="sheet-title">${testName(id)}</h2>` +
+      schedule(test.order.map((o, i) => ({ name: testName(o), state: i < test.si ? 'done' : i === test.si ? 'now' : '' })));
     if (id === 'system') {
       h += `<p class="muted" id="t-prog"></p><p class="sys-target" id="t-phrase"></p>
         <textarea id="t-sys" rows="2" autocomplete="off" autocapitalize="sentences" placeholder="Нажми сюда и набери фразу"></textarea>
@@ -1692,7 +2140,7 @@ details b { color: var(--fg); font-weight: 500; }
       if (!m.t0 && v) m.t0 = Date.now();
       if (v.length > m.prev) m.inserted += v.length - m.prev;
       m.prev = v.length;
-      if (norm(v) !== norm(phrase)) return;
+      if (!closeEnough(v, phrase)) return;
       const ms = Math.max(1, Date.now() - m.t0), n = phrase.length;
       const a = { at: Date.now(), cfg: 'Системная клавиатура', lang, layout: 'system', mode: 'system', side: null, phrase, ms,
         cpm: Math.round(n / (ms / 60000)), acc: Math.round(100 * n / Math.max(n, m.inserted)), tpc: null, mm: null, far: null, test: test.at };
@@ -1712,7 +2160,7 @@ details b { color: var(--fg); font-weight: 500; }
     const info = TEST_INFO[test.order[test.si]];
     test.typing = true; test.pi = 0; di = 0;
     applySetup(info.variant, info.mode);
-    $('gear').hidden = true; $('test-open').hidden = true;
+    $('gear').hidden = true; $('learn-open').hidden = true; openKbd();
     clearText(); render(); closeSheet();
   };
   function nextTestPhrase(done) {
@@ -1720,7 +2168,7 @@ details b { color: var(--fg); font-weight: 500; }
     if (!done) test.res[test.order[test.si]].skipped++;
     test.pi++;
     if (test.pi < test.phrases.length) { di = test.pi; clearText(); render(); return; }
-    test.typing = false; $('gear').hidden = false; $('test-open').hidden = false;
+    test.typing = false; $('gear').hidden = false; $('learn-open').hidden = false;
     di = 0; clearText(); render();
     testRate();
   }
@@ -1742,7 +2190,7 @@ details b { color: var(--fg); font-weight: 500; }
     if (!test) return;
     const b = test.before;
     test = null;
-    $('gear').hidden = false; $('test-open').hidden = false;
+    $('gear').hidden = false; $('learn-open').hidden = false;
     applySetup(b.variant, b.mode); di = b.di;
     clearText(); render(); closeSheet();
   }
@@ -1846,7 +2294,9 @@ details b { color: var(--fg); font-weight: 500; }
   size.addEventListener('input', () => { userScale = Number(size.value); store.set('duga-size', userScale); layout(); });
   $('reset').onclick = () => { clearText(); render(); };
 
-  new ResizeObserver(() => layout()).observe(kbd);
+  // redraw only when the width changes: the height animates when the keyboard slides in and out
+  let lastKW = 0;
+  new ResizeObserver(() => { if (kbd.clientWidth !== lastKW) { lastKW = kbd.clientWidth; layout(); } }).observe(kbd);
   window.addEventListener('resize', () => layout());
   paintModes();
   setSide(side); setLight(light);
