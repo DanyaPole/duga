@@ -7,7 +7,8 @@ fs.mkdirSync(out);
 const page = fs.readFileSync(path.join(root, 'duga.html'), 'utf8');
 const head = '<!doctype html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\n' +
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
-  '<meta name="color-scheme" content="light dark">\n' + // own dark theme: keeps Chrome's auto-dark from recolouring
+  '<meta name="color-scheme" content="light dark">\n' + // the page has its own dark theme
+  '<meta name="darkreader-lock">\n' + // so the Dark Reader extension leaves its colours alone
   '<title>Клавиатура Дуга</title>\n' +
   '<meta name="description" content="Бесплатная клавиатура для набора одной рукой: дуга под большой палец.">\n' +
   '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>\n' +
