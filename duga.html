@@ -137,6 +137,26 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   word-break: break-word; padding: 4px 2px;
 }
 .out .ph { color: var(--muted); }
+.outwrap { position: relative; flex: 1; min-height: 44px; display: flex; }
+.outwrap .out { flex: 1; min-width: 0; }
+.outwrap.has .out { padding-right: 84px; }
+.app.left .outwrap.has .out { padding-right: 2px; padding-left: 84px; }
+.outbtns { position: absolute; top: 0; right: 0; display: flex; gap: 6px; }
+.app.left .outbtns { right: auto; left: 0; }
+.outwrap:not(.has) .outbtns { display: none; }
+.outbtn {
+  width: 38px; height: 38px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+}
+.outbtn[hidden], .out-toast[hidden] { display: none; }
+.out-toast {
+  position: absolute; top: 44px; right: 0; width: max-content; max-width: min(250px, 70vw); z-index: 2;
+  font-size: 13px; line-height: 1.35; padding: 7px 10px; border-radius: 9px; box-sizing: border-box;
+  background: var(--panel); border: 1px solid var(--bad); color: var(--fg);
+}
+.out-toast.ok { border-color: var(--ok); }
+.app.left .out-toast { right: auto; left: 0; }
+.outbtn.ok { background: var(--zone); border-color: var(--ok); color: var(--ok); }
 .caret { display: inline-block; width: 2px; height: 1.15em; background: var(--accent); vertical-align: -0.2em; margin-left: 1px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
@@ -324,7 +344,18 @@ details b { color: var(--fg); font-weight: 500; }
       </div>
       <div id="ptext"></div>
     </div>
-    <div class="out" id="out" aria-live="polite"></div>
+    <div class="outwrap" id="outwrap">
+      <div class="out" id="out" aria-live="polite"></div>
+      <div class="outbtns">
+        <span class="out-toast" id="out-toast" hidden role="status"></span>
+        <button id="copy-text" class="outbtn" type="button" aria-label="Скопировать текст">
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v7A1.5 1.5 0 0 0 5.5 14H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button id="share-text" class="outbtn" type="button" aria-label="Отправить текст в другое приложение" hidden>
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 12.5V3.5M6.8 6.5 10 3.3l3.2 3.2M5 9.5H4.5A1.5 1.5 0 0 0 3 11v5A1.5 1.5 0 0 0 4.5 17.5h11A1.5 1.5 0 0 0 17 16v-5a1.5 1.5 0 0 0-1.5-1.5H15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
     <div class="cands" id="cands" aria-label="Варианты слова"></div>
   </div>
   <div class="kbd" id="kbd">
@@ -877,6 +908,7 @@ details b { color: var(--fg); font-weight: 500; }
     out.innerHTML = text ? body + '<span class="caret"></span>'
       : '<span class="caret"></span><span class="ph">' + UI[lang].placeholder + '</span>';
     out.scrollTop = out.scrollHeight;
+    $('outwrap').classList.toggle('has', text.length > 0);
     const all = drills(), d = drill(), p = d.x;
     dlbl.textContent = `${di + 1}/${all.length} · ${d.t}`;
     const done = norm(text) === norm(p), inTest = !!(test && test.typing);
@@ -1458,6 +1490,42 @@ details b { color: var(--fg); font-weight: 500; }
   };
   $('report-open').onclick = () => { $('report').hidden = false; paintReport(); };
   $('report-close').onclick = () => { $('report').hidden = true; clearArmed = false; $('clear-data').textContent = 'Очистить замеры'; };
+  // ---------- copy and share the typed text ----------
+  // Dugа is not a system keyboard, so the way out of it is: copy → paste, or the phone's share sheet
+  // (Telegram, Messages, Notes ...). Copy works from a tap only, and falls back to a temporary field.
+  function copyPlain(s) {
+    return new Promise((ok, fail) => {
+      const legacy = () => {
+        const t = document.createElement('textarea');
+        t.value = s; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;font-size:16px';
+        document.body.appendChild(t); t.select(); t.setSelectionRange(0, s.length);
+        let good = false; try { good = document.execCommand('copy'); } catch (e) {}
+        t.remove(); good ? ok() : fail();
+      };
+      try { navigator.clipboard.writeText(s).then(ok, legacy); } catch (e) { legacy(); }
+    });
+  }
+  let toastTimer = 0;
+  function toast(msg, good) {
+    const t = $('out-toast'); t.textContent = msg; t.hidden = false; t.classList.toggle('ok', !!good);
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, good ? 1600 : 4200);
+  }
+  $('copy-text').onclick = () => {
+    const b = $('copy-text');
+    copyPlain(text).then(() => {
+      b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1400);
+      toast('Скопировано', true); buzz();
+    }, () => { // last resort: select the text so the phone's own Copy menu can take it
+      const r = document.createRange(); r.selectNodeContents(out);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      toast('Не вышло скопировать само. Текст выделен: нажми «Скопировать» в меню телефона.');
+    });
+  };
+  if (navigator.share) {
+    $('share-text').hidden = false;
+    $('share-text').onclick = () => { navigator.share({ text }).catch(() => {}); };
+  }
+
   // ---------- sheets: welcome, help, guided test ----------
   const sheet = $('sheet'), card = $('sheet-card'), acts = {};
   let sheetClosable = false;
@@ -1535,7 +1603,10 @@ details b { color: var(--fg); font-weight: 500; }
     let h = `<p class="eyebrow">Справка</p><h2 id="sheet-title">Как печатать</h2>
       <p>Держи телефон одной рукой и печатай большим пальцем. Сейчас: <b>${esc($('summary').textContent)}</b>. Раскладку, способ ввода, язык и руку меняет кнопка с ползунками вверху.</p>`;
     for (const m of order) h += `<h3>${MODE_NAMES[m]}${m === mode ? ' — сейчас' : ''}</h3>${HOW[m]()}`;
-    h += `<h3>Везде</h3><ul>
+    h += `<h3>Как пользоваться в жизни</h3><ul>
+      <li>Дуга — не системная клавиатура: печатать можно только внутри неё. Набрал текст — нажми значок копирования (или «отправить») у текста и вставь в Telegram или заметки.</li>
+      <li>Чтобы открывать Дугу как приложение: в Safari нажми «Поделиться» → «На экран „Домой“». Она запустится на весь экран и будет работать без интернета.</li></ul>
+      <h3>Везде</h3><ul>
       <li>Удержание: е → ё, ь → ъ, . → …, - → —; в «Пульсе» ещё ? → !.</li>
       <li>⇧ один раз — одна заглавная, дважды — капслок. После точки заглавная включается сама.</li>
       <li>Двойной пробел — точка. Удерживай ⌫ — стирает подряд.</li>
