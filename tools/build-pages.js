@@ -34,6 +34,9 @@ fs.mkdirSync(path.join(out, 'icons'));
 for (const f of ['swipe.js', 'dict_ru.txt', 'dict_en.txt']) fs.copyFileSync(path.join(root, f), path.join(out, f));
 for (const f of ['icon-180.png', 'icon-192.png', 'icon-512.png']) fs.copyFileSync(path.join(root, 'icons', f), path.join(out, 'icons', f));
 
+// the Android keyboard Пульк: its own page and the installer file, served as they are
+fs.cpSync(path.join(root, 'pulk'), path.join(out, 'pulk'), { recursive: true });
+
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   name: 'Дуга — клавиатура для одной руки', short_name: 'Дуга', lang: 'ru',
   description: 'Бесплатная клавиатура для набора одной рукой: дуга под большой палец.',

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="darkreader-lock">
+<title>Пульк для Android</title>
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root { --bg: #0D1215; --panel: #141B1F; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2; --accent: #55BAD7; --accent-fg: #06222B; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 620px; margin: 0 auto; padding-block: 32px 48px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; gap: 16px; align-items: center; }
+  header img { width: 64px; height: 64px; border-radius: 16px; }
+  h1 { margin: 0; font-size: 30px; line-height: 1.1; text-wrap: balance; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  h2 { font-size: 19px; margin: 32px 0 8px; }
+  p, li { color: var(--fg); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .get { display: block; margin: 24px 0 8px; padding: 16px; border-radius: 14px; background: var(--accent); color: var(--accent-fg); text-align: center; font-weight: 700; font-size: 18px; text-decoration: none; }
+  ol { padding-left: 22px; } li { margin: 6px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+  code { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="">
+    <div>
+      <h1>Пульк</h1>
+      <p class="sub">Клавиатура для Android, чтобы печатать одной рукой, большим пальцем</p>
+    </div>
+  </header>
+
+  <p>Все буквы — в звезде из 8 направлений. Ставишь палец в звезду и смахиваешь: прямо — крупная буква, с поворотом — мелкая снаружи, «туда и обратно» — мелкая у центра. Палец почти не двигается, и многие через пару дней печатают, не глядя на экран.</p>
+
+  <a class="get" href="pulk.apk" download>Скачать Пульк 0.4 · 0,9 МБ</a>
+  <p class="muted">Для Android 8 и новее. Бесплатно, без рекламы. У приложения нет доступа к интернету: набранное не покидает телефон.</p>
+
+  <h2>Как поставить</h2>
+  <ol>
+    <li>Скачай файл и открой его. Android попросит разрешить установку из этого источника — разреши.</li>
+    <li>Если появится «Приложение не проверено» (Play Protect) — «Всё равно установить». Так бывает со всеми приложениями не из магазина.</li>
+    <li>Открой «Пульк» и нажми «Открыть настройки клавиатур». Включи «Пульк». Android предупредит, что клавиатура видит набранное, — это стандартное предупреждение для любой клавиатуры.</li>
+    <li>Нажми «Выбрать клавиатуру» и выбери Пульк.</li>
+    <li>Пройди «Обучение» в приложении: 4 коротких уровня, по паре минут.</li>
+  </ol>
+  <p class="muted">Ставишь новую версию поверх старой — удалять не нужно. Если не ставится, удали старую версию и поставь снова.</p>
+
+  <h2>Что внутри</h2>
+  <div class="card">Подсказки слов над звездой и автоисправление, которое знает типичные промахи пальца. ⌫ сразу после исправления — вернуть своё слово.</div>
+  <div class="card">Вибрация, звук с нотой на каждое направление, голос, режим «вслепую». Левая рука — зеркальная звезда.</div>
+  <div class="card">Клавиатура прозрачная: видна только звезда и клавиши, за ними — приложение. Выдвигается из угла со звуком капли — «пульк».</div>
+  <div class="card">Вернуться к другой клавиатуре: удержи <code>RU/EN</code>.</div>
+
+  <h2>Попробовать без установки</h2>
+  <p>Веб-версия со всеми режимами, в том числе «Пульс»: <a href="../">danyapole.github.io/duga</a>. Работает и на iPhone.</p>
+  <p class="muted">Словари: FrequencyWords (Hermit Dave), CC BY-SA 4.0.</p>
+</main>
+</body>
+</html>
