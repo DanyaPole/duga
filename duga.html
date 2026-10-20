@@ -1,0 +1,1015 @@
+<title>Клавиатура Дуга</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: phone-width column; text on top, quarter-disc keyboard anchored to the bottom-right corner (right thumb pivot) */
+:root {
+  --bg: #E7ECEF;
+  --panel: #F5F7F8;
+  --kbd: #D4DCE1;
+  --key: #FFFFFF;
+  --fn: #C3CDD3;
+  --zone: #E3F1F5;
+  --press: #A9D3E0;
+  --line: #C6D0D6;
+  --fg: #152027;
+  --muted: #5B6A73;
+  --accent: #0B6E8A;
+  --accent-fg: #FFFFFF;
+  --ok: #2B7A4B;
+  --bad: #B23A2F;
+  --h1: #7CC3D8; --h2: #A6D7E4; --h3: #CBE7EF; /* likely next letters, strongest first */
+  --warm: #D9822B; /* light layer: fast tempo, off-centre taps */
+  --ui: "Golos Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1215; --panel: #141B1F; --kbd: #0A0E10; --key: #20292E; --fn: #2C373D;
+    --zone: #1B323B; --press: #2F6070; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2;
+    --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1215; --panel: #141B1F; --kbd: #0A0E10; --key: #20292E; --fn: #2C373D;
+  --zone: #1B323B; --press: #2F6070; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2;
+  --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--ui); font-size: 15px;
+  overscroll-behavior: none; margin: 0;
+}
+.app {
+  height: 100%; max-width: 440px; margin: 0 auto; display: flex; flex-direction: column;
+  background: var(--bg);
+}
+@media (min-width: 520px) { .app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+.top {
+  display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0;
+  padding-block: 12px 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.summary { font-size: 12px; color: var(--muted); margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.settings { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.settings[hidden] { display: none; }
+.btn.icon { padding: 5px 7px; line-height: 0; color: var(--fg); }
+.btn.icon[aria-expanded="true"] { background: var(--zone); border-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: 500 13px var(--ui); padding: 6px 11px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.size { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.size input { width: 84px; accent-color: var(--accent); }
+.btn {
+  font: 500 13px var(--ui); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--fg); cursor: pointer;
+}
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.phrase {
+  font-size: 15px; line-height: 1.45; padding: 8px 10px 9px 12px; border-radius: 10px; background: var(--panel);
+  border: 1px solid var(--line); color: var(--muted);
+}
+.phrase .head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.phrase .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: auto; min-width: 0; }
+.nav {
+  font: 600 16px/1 var(--ui); width: 34px; height: 28px; border-radius: 7px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--fg); cursor: pointer;
+}
+.nav:disabled { opacity: .35; cursor: default; }
+.nav.go { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.phrase .ok { color: var(--ok); }
+.phrase .bad { color: var(--bad); text-decoration: underline; }
+.phrase .cur { color: var(--fg); border-bottom: 2px solid var(--accent); }
+.out {
+  flex: 1; min-height: 44px; overflow-y: auto; font-size: 19px; line-height: 1.4; white-space: pre-wrap;
+  word-break: break-word; padding: 4px 2px;
+}
+.out .ph { color: var(--muted); }
+.caret { display: inline-block; width: 2px; height: 1.15em; background: var(--accent); vertical-align: -0.2em; margin-left: 1px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+details { font-size: 13px; color: var(--muted); }
+details summary { cursor: pointer; }
+details ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+details b { color: var(--fg); font-weight: 500; }
+.kbd {
+  position: relative; flex: none; background: var(--kbd);
+  padding-right: env(safe-area-inset-right, 0px); padding-left: env(safe-area-inset-left, 0px);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.kbd svg { display: block; width: 100%; }
+.kbd .k { stroke-linejoin: round; transition: fill .06s; }
+.k.ch { fill: var(--key); stroke: var(--key); }
+.k.ch.zone { fill: var(--zone); stroke: var(--zone); }
+.k.fn { fill: var(--fn); stroke: var(--fn); }
+.k.ch.h1 { fill: var(--h1); stroke: var(--h1); }
+.k.ch.h2 { fill: var(--h2); stroke: var(--h2); }
+.k.ch.h3 { fill: var(--h3); stroke: var(--h3); }
+.k.act { fill: var(--press); stroke: var(--press); }
+.k.lock { fill: var(--accent); stroke: var(--accent); }
+.k.down { fill: var(--press); stroke: var(--press); }
+.kbd .dim { opacity: .35; }
+.kbd text { fill: var(--fg); font-family: var(--ui); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.kbd text.small { fill: var(--muted); }
+.kbd text.on-lock { fill: var(--accent-fg); }
+.stats {
+  position: absolute; top: 10px; left: calc(12px + env(safe-area-inset-left, 0px));
+  font: 500 12px var(--mono); color: var(--muted); display: grid; gap: 3px; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+.stats b { color: var(--fg); font-weight: 500; }
+.bubble {
+  position: fixed; z-index: 20; min-width: 52px; height: 58px; padding: 0 10px; border-radius: 14px;
+  background: var(--accent); color: var(--accent-fg); font: 600 30px var(--ui);
+  display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%);
+  pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+.bubble[hidden] { display: none; }
+.cands { display: flex; gap: 6px; justify-content: flex-end; min-height: 34px; overflow: hidden; }
+/* left hand: the empty corner and the thumb swap sides */
+.app.left .cands { justify-content: flex-start; }
+.app.left .stats { left: auto; right: calc(12px + env(safe-area-inset-right, 0px)); text-align: right; }
+.btn[aria-pressed="true"] { background: var(--zone); border-color: var(--accent); }
+/* light layer */
+.glow {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .9s ease;
+  background: radial-gradient(circle at var(--gx, 100%) 100%, var(--c) 0%, transparent 72%);
+}
+.glow.cool { --c: var(--accent); }
+.glow.warm { --c: var(--warm); }
+.app.left .glow { --gx: 0%; }
+.ripple {
+  position: absolute; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none;
+  animation: ripple .45s ease-out forwards;
+}
+.ripple.warm { border-color: var(--warm); }
+@keyframes ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.out .ink { color: var(--accent); animation: ink .9s ease-out forwards; }
+@keyframes ink { to { color: var(--fg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ripple { display: none; }
+  .glow { transition: none; }
+  .out .ink { animation: none; color: inherit; }
+}
+.cands button {
+  font: 500 15px var(--ui); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--fg); cursor: pointer; white-space: nowrap;
+}
+.cands button.on { background: var(--zone); border-color: var(--accent); }
+.cands .note { font-size: 12px; color: var(--muted); align-self: center; }
+.trail {
+  position: absolute; top: 0; left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px);
+  width: auto; pointer-events: none;
+}
+.trail polyline { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+</style>
+
+<div class="app">
+  <div class="top">
+    <header>
+      <h1>Дуга</h1>
+      <span class="summary" id="summary"></span>
+      <button id="reset" class="btn" type="button">Заново</button>
+      <button id="gear" class="btn icon" type="button" aria-expanded="false" aria-controls="settings" aria-label="Настройки">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="5" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="13" cy="10" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="15" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+    </header>
+    <div class="settings" id="settings" hidden>
+      <div class="seg" id="variants" role="group" aria-label="Раскладка"></div>
+      <div class="seg" role="group" aria-label="Способ ввода">
+        <button id="mode-swipe" type="button" aria-pressed="true">Свайп</button>
+        <button id="mode-flick" type="button" aria-pressed="false">Флик</button>
+        <button id="mode-mix" type="button" aria-pressed="false">Микс</button>
+        <button id="mode-ray" type="button" aria-pressed="false">Луч</button>
+      </div>
+      <div class="seg" role="group" aria-label="Язык">
+        <button id="lang-ru" type="button" aria-pressed="true">RU</button>
+        <button id="lang-en" type="button" aria-pressed="false">EN</button>
+      </div>
+      <div class="seg" role="group" aria-label="Рука">
+        <button id="side-left" type="button" aria-pressed="false">Левая</button>
+        <button id="side-right" type="button" aria-pressed="true">Правая</button>
+      </div>
+      <label class="size" for="size">Размер <input id="size" type="range" min="80" max="115" step="1" value="100"></label>
+      <button id="light" class="btn" type="button" aria-pressed="true">Свет</button>
+    </div>
+    <div class="phrase">
+      <div class="head">
+        <span class="lbl" id="dlbl"></span>
+        <button id="prev" class="nav" type="button" aria-label="Предыдущее упражнение">‹</button>
+        <button id="next" class="nav" type="button" aria-label="Следующее упражнение">›</button>
+      </div>
+      <div id="ptext"></div>
+    </div>
+    <div class="out" id="out" aria-live="polite"></div>
+    <details id="help">
+      <summary>Раскладки и жесты</summary>
+      <ul>
+        <li><b>Слоги</b>: все гласные в ближнем кольце, твёрдые слева, мягкие справа. Частые согласные во втором кольце, редкие в третьем. Согласные стоят так, чтобы частые слоги и сочетания (ст, но, ко, ра, пр) набирались коротким движением.</li>
+        <li><b>ЙЦУКЕН / QWERTY</b>: ряды обычной клавиатуры, свёрнутые в дуги. Нижний ряд ближе к углу, верхний дальше. Знакомо сразу, зато частые е, н, к далеко.</li>
+        <li><b>Левая / Правая</b>: под какой большой палец зеркалить дугу.</li>
+        <li><b>Свет</b>: кольцо на нажатой клавише подтверждает, какая сработала; тёплое кольцо значит, что палец попал у края клавиши. Свечение из угла разгорается от темпа: холодное на медленном наборе, тёплое на быстром. Новые буквы в тексте появляются цветом и «высыхают» за секунду.</li>
+        <li>Бледные клавиши не нужны в текущем упражнении, но работают.</li>
+        <li>Тап по сектору — буква. Весь сектор работает как клавиша, промахнуться сложно.</li>
+        <li><b>Флик</b>: буквы собраны в крупные группы по 3–4. Тап — буква посередине. Смахни вдоль дуги — соседняя буква слева или справа, смахни наружу — верхняя. Мелкая буква стоит там, куда её надо смахнуть. Под пальцем всплывает буква, которая будет введена, отпусти палец, чтобы ввести её, или верни палец в центр, чтобы передумать. Свайп по словам тоже работает: веди палец из клетки в клетку через буквы слова. Можно просто проводить через клетки, а если вести через сами мелкие буквы, слово угадается точнее.</li>
+        <li><b>Микс</b>: два ближних кольца, куда палец достаёт без усилия, это обычные клавиши (тап и свайп по словам). Дальние кольца с редкими буквами собраны в группы с фликом, чтобы не тянуться и не целиться. Над клавиатурой три подсказки слова по набранным буквам: один тап вместо дописывания. Пробел: смах наружу ставит «. », внутрь «, », вдоль дуги в сторону угла стирает слово.</li>
+        <li><b>Луч</b>: все буквы обычные клавиши, как в «Свайпе», но после первой буквы три самые вероятные следующие подсвечиваются (чем темнее, тем вероятнее). Глаз сразу видит, куда тянуться, а раскладка запоминается сама. Подсказки слов и жесты пробела те же, что в «Миксе».</li>
+        <li>Свайп (режимы «Свайп», «Микс», «Луч»): веди палец по буквам слова, не отрывая. Слово вставится целиком, пробел перед ним поставится сам. Другие варианты — кнопки над клавиатурой. ⌫ сразу после свайпа стирает всё слово.</li>
+        <li>Удержание: е → ё, ь → ъ, - → —, . → …</li>
+        <li>Двойной пробел — точка и пробел.</li>
+        <li>Смах влево по пробелу — стереть слово. Удерживай ⌫ — стирает подряд.</li>
+        <li>⇧ один раз — одна заглавная, дважды — капслок. После точки заглавная включается сама.</li>
+        <li>Подсвечены два кольца, куда большой палец достаёт без напряжения.</li>
+      </ul>
+    </details>
+    <div class="cands" id="cands" aria-label="Варианты слова"></div>
+  </div>
+  <div class="kbd" id="kbd">
+    <div class="stats" id="stats"></div>
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg" aria-label="Клавиатура"></svg>
+    <div class="glow cool" id="glow-cool"></div>
+    <div class="glow warm" id="glow-warm"></div>
+    <svg id="trail" class="trail" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline id="trail-line" points=""></polyline></svg>
+  </div>
+</div>
+<div class="bubble" id="bubble" hidden></div>
+
+<script src="swipe.js"></script>
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const D = Math.PI / 180;
+  const A0 = 91, A1 = 179; // angular span: up along the right edge → left along the bottom
+
+  // ---------- layouts (data) ----------
+  // Letter rings, from the corner outwards. Ring spec:
+  //   freq:  most frequent first; placed from the middle of the arc (diagonal) towards both ends
+  //   row:   left → right as seen on screen (bottom-left end of the arc → top-right end)
+  //   fixed: in arc order starting at the top-right end
+  const BANDS = [[158, 214], [214, 270], [270, 326], [326, 382]];
+  const ZONE_RINGS = 2; // inner letter rings the thumb reaches without strain
+  const fnRings = [
+    { band: [30, 100], keys: [{ t: 'shift', w: 1 }, { t: 'lang', w: 1 }] },
+    { band: [100, 158], keys: [{ t: 'bksp', w: 1.15 }, { t: 'space', w: 2.6 }, { t: 'enter', w: 1 }] },
+  ];
+  const PUNCT = {
+    ru: ['.', ',', '-', '?', '!', ':'],
+    en: ['.', ',', "'", '?', '!', '-', ':', '@'],
+  };
+  const ALT = { ru: { 'е': 'ё', 'ь': 'ъ', '.': '…', '-': '—' }, en: { '-': '—', '.': '…' } };
+  const UI = {
+    ru: { space: 'пробел', placeholder: 'Начни печатать большим пальцем…' },
+    en: { space: 'space', placeholder: 'Start typing with your thumb…' },
+  };
+
+  // Drills: lv = the outermost letter ring the text may use (1 = nearest). Shared drills use everything.
+  const COMMON = {
+    ru: [
+      { t: 'Все буквы', x: 'Съешь же ещё этих мягких французских булок, да выпей чаю.' },
+      { t: 'Живой текст', x: 'Привет! Я печатаю одним пальцем, и это удобно.' },
+    ],
+    en: [
+      { t: 'Все буквы', x: 'The quick brown fox jumps over the lazy dog.' },
+      { t: 'Живой текст', x: 'Hi! I am typing with one thumb, and it feels easy.' },
+    ],
+  };
+  // «Слоги»: vowels in the nearest ring (hard ones left, soft ones right), consonants arranged by
+  // optimising thumb travel over letter pairs from a Wikipedia corpus (Fitts' law + reach penalty).
+  const VARIANTS = {
+    syl: {
+      name: { ru: 'Слоги', en: 'Слоги' },
+      ru: {
+        rings: [{ row: 'эыуоаеияю' }, { row: 'ймпрвнтскль' }, { row: 'фхбгдзчжшц' },
+          { fixed: ['.', ',', '-', 'щ', '?', '!', ':'] }],
+        // Flick cells, ring by ring from the corner, cells in arc order from the top end.
+        // Each cell: tap letter first, then cw, ccw, out. Found by tools/layout-opt/flick-groups.js:
+        // glide paths shared with a more frequent word 22% → 4%, thumb effort −21% vs. the ring groups.
+        flick: [['евк', 'осз', 'апя'], ['нуй', 'игч', 'рьх', 'тыж'], ['дшюц', 'лбэ', 'мщф'], ['.,-', '?!:']],
+        drills: [
+          { t: 'Гласные: твёрдые слева, мягкие справа', lv: 1, x: 'Э ы у о а е и я ю' },
+          { t: 'Ритм: согласная, гласная', lv: 2, x: 'Мама рука нота пила вата сети' },
+          { t: 'Зона удобства', lv: 2, x: 'Мама мыла раму, кот спал на окне' },
+        ],
+      },
+      en: {
+        rings: [{ row: 'uoaeiy' }, { row: 'fmlrdnstch' }, { row: 'qjbpvgwkxz' }, { fixed: PUNCT.en }],
+        flick: [['ecj', 'tum', 'osz'], ['rpw', 'ify', 'adq'], ['hgv', 'lkx', 'nb'], [".,'?", '!-:@']], // shared paths 35% → 7.5%, effort −12%
+        drills: [
+          { t: 'Кольцо гласных', lv: 1, x: 'U o a e i y' },
+          { t: 'Ритм: согласная, гласная', lv: 2, x: 'The cat sat on the mat' },
+          { t: 'Зона удобства', lv: 2, x: 'Tim and Liam ran to the old mill' },
+        ],
+      },
+    },
+    qwerty: {
+      name: { ru: 'ЙЦУКЕН', en: 'QWERTY' },
+      ru: {
+        rings: [{ row: 'ячсмитьбю' }, { row: 'фывапролджэ' }, { row: 'йцукенгшщзх' }, { fixed: PUNCT.ru }],
+        drills: [
+          { t: 'Нижний ряд', lv: 1, x: 'Митя мстить чтить сбить смять' },
+          { t: 'Нижний и средний ряды', lv: 2, x: 'Мама мыла пол, Вова читал, Лида спала' },
+        ],
+      },
+      en: {
+        rings: [{ row: 'zxcvbnm' }, { row: 'asdfghjkl' }, { row: 'qwertyuiop' }, { fixed: PUNCT.en }],
+        drills: [
+          { t: 'Средний ряд', lv: 2, x: 'A sad lad has a flask' },
+          { t: 'Нижний и средний ряды', lv: 2, x: 'Hank calls Sam back' },
+        ],
+      },
+    },
+  };
+  window.DUGA = { VARIANTS, COMMON, PUNCT };
+
+  // Swipe typing: a drag that travels this far (base units) and reaches another letter key becomes a swipe.
+  const SWIPE_MIN = 22;
+  // Fan flick: letters are merged into 3–4 letter groups (big cells). Tap = middle letter,
+  // flick along the arc picks the neighbours, flick out picks the extra letter.
+  const FLICK_MIN = 11;     // drag shorter than this (base units) counts as a tap on the middle letter
+  const FLICK_GROUP = 3.4;  // target letters per group
+  // Input modes. swipe = tap + glide; flick = grouped letters; mix = single keys in the thumb zone +
+  // flick groups beyond it + glide + word bar; ray = single keys + glide + word bar + glow of likely
+  // next letters. mix and ray also get space-bar gestures for . and ,
+  const MODES = ['swipe', 'flick', 'mix', 'ray'];
+  const GLIDE_FROM_GROUP = 45; // a drag that starts on a group cell becomes a glide only after travelling this far
+  const GROUPED_FROM_RING = 2; // in mix mode letter rings from this index outwards are flick groups
+  // Glide over flick groups: a letter's target point lies between the cell centre (0) and its own spot (1),
+  // so a lazy glide through the big cells works and aiming at the small letter helps tell words apart.
+  let SPOT_W = 0.35;
+  const GAP_PUNCT_MIN = 14;    // space-bar gesture length (base units)
+  // Most frequent first (from the Wikipedia corpus); the most frequent letter of a group takes the tap
+  const FREQ = {
+    ru: 'оеиан.тс,рвлкмпдуяыьгзбчйхжшюцщэф-?!:',
+    en: "eatoin.sr,hldcumfpgwybvkxjqz'?!-:@",
+  };
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  let lang = store.get('duga-lang') === 'en' ? 'en' : 'ru';
+  let variant = VARIANTS[store.get('duga-variant')] ? store.get('duga-variant') : 'syl';
+  let userScale = Number(store.get('duga-size')) || 100;
+  let mode = MODES.includes(store.get('duga-mode')) ? store.get('duga-mode') : 'swipe';
+  let hints = null; // Map letter → 1..3 for the likely next letters (ray mode)
+  let side = store.get('duga-side') === 'left' ? 'left' : 'right';
+  let light = store.get('duga-light') !== 'off';
+  let prevLen = 0, inkStart = 0, fadeTimer = 0; // light layer: freshly typed text and typing tempo
+  const recent = [];
+  let di = 0; // current drill
+  let text = '';
+  let shiftOnce = false, shiftLock = false, lastShiftTap = 0;
+  let lastSpace = 0;
+  let t0 = 0, fixes = 0;
+  let rings = [], geo = { cx: 0, cy: 0, k: 1 };
+  let lastSwipe = null; // { start, end, prefix, mode, alts, cur } while the last swiped word is untouched
+
+  const $ = id => document.getElementById(id);
+  const svg = $('svg'), kbd = $('kbd'), out = $('out'), statsEl = $('stats'), bubble = $('bubble');
+  const candsEl = $('cands'), trailSvg = $('trail'), trailLine = $('trail-line');
+  const ptext = $('ptext'), dlbl = $('dlbl'), prevBtn = $('prev'), nextBtn = $('next'), vSeg = $('variants');
+
+  const drills = () => [...VARIANTS[variant][lang].drills, ...COMMON[lang]];
+  const drill = () => drills()[di];
+
+  function buildRings() {
+    const V = VARIANTS[variant][lang];
+    const spec = mode === 'flick' && V.flick ? V.flick.map(groups => ({ groups })) : V.rings;
+    const all = [...fnRings, ...spec.map((s, i) => ({ ...s, band: BANDS[i], zone: i < ZONE_RINGS }))];
+    rings = all.map((rg, ri) => {
+      let keys;
+      if (rg.freq) {
+        const chars = [...rg.freq], n = chars.length, c = (n - 1) / 2;
+        const slots = [...Array(n).keys()].sort((a, b) => Math.abs(a - c) - Math.abs(b - c) || a - b);
+        keys = Array(n);
+        slots.forEach((slot, i) => { keys[slot] = { t: 'ch', v: chars[i], w: 1 }; });
+      } else if (rg.groups) { // ready-made flick cells: tap letter, then cw, ccw, out, in
+        keys = rg.groups.map(s => {
+          const map = {};
+          [...s].forEach((v, i) => { map[['c', 'cw', 'ccw', 'out', 'in'][i]] = v; });
+          return { t: 'grp', map, w: s.length };
+        });
+      } else if (rg.row) {
+        keys = [...rg.row].reverse().map(v => ({ t: 'ch', v, w: 1 }));
+      } else if (rg.fixed) {
+        keys = rg.fixed.map(v => ({ t: 'ch', v, w: 1 }));
+      } else {
+        keys = rg.keys.map(k => ({ ...k }));
+      }
+      const li = ri - fnRings.length; // letter ring index, -1 for the service rings
+      if (keys[0].t === 'ch' && (mode === 'flick' || (mode === 'mix' && li >= GROUPED_FROM_RING))) keys = groupKeys(keys);
+      const tw = keys.reduce((s, k) => s + k.w, 0);
+      let a = A0;
+      keys.forEach(k => {
+        k.a0 = a; a += (A1 - A0) * k.w / tw; k.a1 = a;
+        k.r0 = rg.band[0]; k.r1 = rg.band[1]; k.zone = !!rg.zone;
+      });
+      return { band: rg.band, keys };
+    });
+  }
+
+  // Merge a ring's letters (in arc order, from the top end) into flick groups of about FLICK_GROUP letters.
+  function groupKeys(chKeys) {
+    const n = chKeys.length, g = Math.max(1, Math.round(n / FLICK_GROUP));
+    const base = Math.floor(n / g), extra = n % g, groups = [];
+    let i = 0;
+    for (let j = 0; j < g; j++) {
+      const size = base + (j < extra ? 1 : 0);
+      const letters = chKeys.slice(i, i + size).map(k => k.v);
+      const rank = c => { const r = FREQ[lang].indexOf(c); return r < 0 ? 99 : r; };
+      let ci = 0;
+      letters.forEach((v, m) => { if (rank(v) < rank(letters[ci])) ci = m; });
+      // neighbours keep their side (cw = towards the top end of the arc); extras go out / in
+      const map = { c: letters[ci] }, rest = [];
+      if (ci > 0) map.cw = letters[ci - 1];
+      if (ci < size - 1) map.ccw = letters[ci + 1];
+      letters.forEach((v, m) => { if (Math.abs(m - ci) > 1) rest.push(v); });
+      if (rest[0]) map.out = rest[0];
+      if (rest[1]) map.in = rest[1];
+      groups.push({ t: 'grp', map, w: size });
+      i += size;
+    }
+    return groups;
+  }
+  // Direction of a drag (dx, dy in base units, y up) in the polar axes of the point it started at:
+  // 'c' (too short), 'cw' / 'ccw' along the arc, 'out' / 'in' along the radius
+  function dirOf(start, dx, dy, min) {
+    if (Math.hypot(dx, dy) < min) return 'c';
+    const a = Math.atan2(start[1], start[0]);
+    const rad = dx * Math.cos(a) + dy * Math.sin(a), tan = -dx * Math.sin(a) + dy * Math.cos(a);
+    return Math.abs(tan) >= Math.abs(rad) ? (tan > 0 ? 'ccw' : 'cw') : (rad > 0 ? 'out' : 'in');
+  }
+  function flickPick(key, start, dx, dy) { return key.map[dirOf(start, dx, dy, FLICK_MIN)] || key.map.c; }
+  // Where each letter of a group sits (radius in base units, angle in degrees): where its flick points
+  function groupSpots(key) {
+    const rm = (key.r0 + key.r1) / 2, am = (key.a0 + key.a1) / 2, da = (key.a1 - key.a0) * 0.29, dr = (key.r1 - key.r0) * 0.3;
+    return { c: [rm, am], cw: [rm, am - da], ccw: [rm, am + da], out: [rm + dr, am], in: [rm - dr, am] };
+  }
+  const glideOn = () => true; // every mode glides; in flick mode a drag that leaves its cell is a glide
+  const predictOn = () => mode === 'mix' || mode === 'ray';
+
+  const shiftOn = () => shiftLock || shiftOnce || autoCap();
+  function autoCap(t = text) { return t === '' || /[.!?…]\s$/.test(t) || t.endsWith('\n'); }
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    parent && parent.appendChild(e);
+    return e;
+  }
+  // All geometry is computed for the right hand; the left hand is its mirror image on screen.
+  const mx = x => side === 'left' ? geo.W - x : x;
+  const pt = (r, a) => [mx(geo.cx + r * Math.cos(a * D)), geo.cy - r * Math.sin(a * D)];
+
+  function sectorPath(r0, r1, a0, a1) {
+    const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1), [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0);
+    const L = (a1 - a0) > 180 ? 1 : 0;
+    const sw = side === 'left' ? 1 : 0; // mirroring flips the arcs' drawing direction
+    return `M${x0},${y0}A${r1},${r1} 0 ${L} ${sw} ${x1},${y1}L${x2},${y2}A${r0},${r0} 0 ${L} ${1 - sw} ${x3},${y3}Z`;
+  }
+
+  function layout() {
+    const W = svg.clientWidth || kbd.clientWidth;
+    const s = Math.min(W, 440) / 400;
+    let k = s * userScale / 100;
+    const pad = 4;
+    const cx = W + pad;
+    k = Math.min(k, (cx - 6) / 382);
+    const outer = 382 * k;
+    const H = Math.ceil(outer + 4);
+    geo = { cx, cy: H + pad, k, W, H };
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    trailSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    trailSvg.setAttribute('height', H);
+    draw();
+  }
+
+  function labelFor(key) {
+    const up = shiftOn();
+    switch (key.t) {
+      case 'ch': return up ? key.v.toUpperCase() : key.v;
+      case 'shift': return '⇧';
+      case 'lang': return lang.toUpperCase();
+      case 'bksp': return '⌫';
+      case 'enter': return '⏎';
+      case 'space': return UI[lang].space;
+    }
+  }
+
+  // Base characters the current drill needs (ё → е etc.), to fade the keys it doesn't
+  function neededKeys() {
+    const back = {};
+    for (const [base, alt] of Object.entries(ALT[lang])) back[alt] = base;
+    return new Set([...drill().x.toLowerCase()].map(c => back[c] || c));
+  }
+
+  function draw() {
+    svg.textContent = '';
+    const k = geo.k, gap = 2.5, cr = 6 * Math.max(k, .8);
+    const alt = ALT[lang], need = neededKeys();
+    rings.forEach(rg => rg.keys.forEach(key => {
+      const r0 = key.r0 * k, r1 = key.r1 * k, rm = (r0 + r1) / 2;
+      const ins = gap + cr, da = ins / rm / D;
+      const isGrp = key.t === 'grp', isLetter = key.t === 'ch' || isGrp;
+      const dim = key.t === 'ch' ? !need.has(key.v) : isGrp && !Object.values(key.map).some(v => need.has(v));
+      const cls = ['k', isLetter ? 'ch' : 'fn'];
+      if (isLetter && key.zone) cls.push('zone');
+      if (key.t === 'ch' && hints && hints.has(key.v)) cls.push('h' + hints.get(key.v));
+      if (dim) cls.push('dim');
+      if (key.t === 'shift') { if (shiftLock) cls.push('lock'); else if (shiftOn()) cls.push('act'); }
+      key.path = el('path', {
+        d: sectorPath(r0 + ins, r1 - ins, key.a0 + da, key.a1 - da),
+        class: cls.join(' '), 'stroke-width': cr * 2,
+      }, svg);
+      const am = (key.a0 + key.a1) / 2;
+      if (isGrp) { // each letter sits where its flick points; the middle one is bigger
+        const spots = groupSpots(key);
+        for (const dir in key.map) {
+          const v = key.map[dir], [x, y] = pt(spots[dir][0] * k, spots[dir][1]);
+          const t = el('text', { x, y }, svg);
+          t.textContent = shiftOn() ? v.toUpperCase() : v;
+          t.setAttribute('font-size', (dir === 'c' ? 21 : 15) * Math.max(k, .85));
+          const lowKey = !need.has(v);
+          t.setAttribute('class', (dir === 'c' ? '' : 'small ') + (lowKey ? 'dim' : ''));
+        }
+        return;
+      }
+      const [x, y] = pt(rm, am);
+      const t = el('text', { x, y }, svg);
+      t.textContent = labelFor(key);
+      let fs = key.t === 'ch' ? 22 : key.t === 'space' ? 14 : key.t === 'lang' ? 15 : 22;
+      t.setAttribute('font-size', fs * Math.max(k, .85));
+      if (key.t === 'space') t.setAttribute('class', 'small');
+      if (key.t === 'space' && predictOn()) { // space-bar gestures: out = ". ", in = ", ", along the arc = delete word
+        const tip = (r, a, s, fs) => {
+          const [hx, hy] = pt(r, a);
+          const h = el('text', { x: hx, y: hy, class: 'small', 'font-size': fs * Math.max(k, .85) }, svg);
+          h.textContent = s;
+        };
+        tip(r1 - 11 * k, am, '.', 17); tip(r0 + 11 * k, am, ',', 17); tip(rm, am + (key.a1 - key.a0) * 0.36, '⌫', 12);
+      }
+      if (key.t === 'shift' && shiftLock) t.setAttribute('class', 'on-lock');
+      if (key.t === 'lang') t.setAttribute('font-weight', 600);
+      if (dim) t.setAttribute('class', 'dim');
+      if (key.t === 'ch' && alt[key.v]) {
+        const [hx, hy] = pt(r1 - 12 * k, am - (key.a1 - key.a0) * 0.22);
+        const h = el('text', { x: hx, y: hy, class: dim ? 'small dim' : 'small', 'font-size': 10.5 * Math.max(k, .85) }, svg);
+        h.textContent = alt[key.v];
+      }
+    }));
+  }
+
+  function hit(clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    const x = mx(clientX - rect.left), y = clientY - rect.top;
+    const dx = x - geo.cx, dy = geo.cy - y;
+    const r = Math.hypot(dx, dy) / geo.k;
+    let a = Math.atan2(dy, dx) / D;
+    if (a < A0 - 10 || a > A1 + 10) return null;
+    a = Math.min(Math.max(a, A0 + 0.01), A1 - 0.01);
+    const last = rings[rings.length - 1];
+    if (r > last.band[1] + 14) return null;
+    const rg = rings.find(g => r < g.band[1]) || last;
+    const key = rg.keys.find(kk => a >= kk.a0 && a < kk.a1) || rg.keys[rg.keys.length - 1];
+    return { key, r: Math.hypot(dx, dy) };
+  }
+
+  // ---------- text ----------
+  function esc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+  function render() {
+    if (text.length > prevLen) { onTyped(text.length - prevLen); inkStart = prevLen; }
+    else if (text.length < prevLen) inkStart = text.length;
+    prevLen = text.length;
+    const body = light && inkStart < text.length
+      ? esc(text.slice(0, inkStart)) + '<span class="ink">' + esc(text.slice(inkStart)) + '</span>' : esc(text);
+    out.innerHTML = text ? body + '<span class="caret"></span>'
+      : '<span class="caret"></span><span class="ph">' + UI[lang].placeholder + '</span>';
+    out.scrollTop = out.scrollHeight;
+    const all = drills(), d = drill(), p = d.x;
+    dlbl.textContent = `${di + 1}/${all.length} · ${d.t}`;
+    prevBtn.disabled = di === 0;
+    nextBtn.disabled = di === all.length - 1;
+    nextBtn.classList.toggle('go', text.trimEnd() === p && !nextBtn.disabled);
+    let html = '';
+    for (let i = 0; i < p.length; i++) {
+      const c = esc(p[i]);
+      if (i < text.length) html += `<span class="${text[i] === p[i] ? 'ok' : 'bad'}">${c}</span>`;
+      else if (i === text.length) html += `<span class="cur">${c}</span>`;
+      else html += c;
+    }
+    ptext.innerHTML = html;
+    paintSummary();
+    hints = mode === 'ray' && !(lastSwipe && text.length === lastSwipe.end) ? nextLetters(curPrefix()) : null;
+    paintCands();
+    stats();
+    draw();
+  }
+  function stats() {
+    const mins = t0 ? (Date.now() - t0) / 60000 : 0;
+    const cpm = mins > 0.03 ? Math.round(text.length / mins) : 0;
+    const done = text.trimEnd() === drill().x;
+    statsEl.innerHTML = `<span><b>${cpm || '—'}</b> зн/мин</span><span><b>${fixes}</b> исправл.</span>` +
+      (done ? '<span><b>фраза готова</b></span>' : '');
+  }
+  function clearText() { text = ''; t0 = 0; fixes = 0; shiftOnce = false; shiftLock = false; lastSwipe = null; }
+  function insert(s) {
+    if (!t0) t0 = Date.now();
+    lastSwipe = null;
+    text += s; render();
+  }
+  function bksp() {
+    if (!text) return;
+    if (lastSwipe && text.length === lastSwipe.end) { // right after a swipe: remove the whole word
+      text = text.slice(0, lastSwipe.start); lastSwipe = null; fixes++; render(); return;
+    }
+    lastSwipe = null;
+    text = text.slice(0, -1); fixes++; render();
+  }
+  function delWord() {
+    if (!text) return;
+    lastSwipe = null;
+    text = text.replace(/\s+$/, '').replace(/[^\s]+$/, ''); fixes++; render();
+  }
+
+  // ---------- swipe typing ----------
+  const dicts = {}, swipeCache = {};
+  function loadDict(l) {
+    if (dicts[l]) return;
+    dicts[l] = 'loading';
+    fetch(`dict_${l}.txt`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(t => { dicts[l] = t.split('\n').filter(Boolean); setTimeout(swipeIndex, 0); if (predictOn()) render(); })
+      .catch(() => { dicts[l] = 'failed'; });
+  }
+  // Templates for the current layout + language, built once the dictionary has arrived
+  function swipeIndex() {
+    const id = variant + '/' + lang + '/' + (mode === 'mix' || mode === 'flick' ? mode + SPOT_W : 'single');
+    if (swipeCache[id]) return swipeCache[id];
+    if (!glideOn() || !window.DugaSwipe || !Array.isArray(dicts[lang])) return null;
+    const keyPos = {}, fold = {};
+    const put = (v, r, a) => { if (/\p{L}/u.test(v)) keyPos[v] = [r * Math.cos(a * D), r * Math.sin(a * D)]; };
+    rings.forEach(rg => rg.keys.forEach(k => {
+      if (k.t === 'ch') put(k.v, (k.r0 + k.r1) / 2, (k.a0 + k.a1) / 2);
+      else if (k.t === 'grp') { // between the cell centre and the letter's own spot, see SPOT_W
+        const sp = groupSpots(k), [rc, ac] = sp.c;
+        for (const dir in k.map) put(k.map[dir], rc + (sp[dir][0] - rc) * SPOT_W, ac + (sp[dir][1] - ac) * SPOT_W);
+      }
+    }));
+    for (const [base, alt] of Object.entries(ALT[lang])) if (/\p{L}/u.test(alt)) fold[alt] = base;
+    return (swipeCache[id] = DugaSwipe.build(dicts[lang], keyPos, fold));
+  }
+  function warmSwipe() { if (glideOn()) { loadDict(lang); setTimeout(swipeIndex, 0); } }
+  function caseWord(w, mode) {
+    if (mode === 'all') return w.toUpperCase();
+    return mode === 'first' ? w[0].toUpperCase() + w.slice(1) : w;
+  }
+  function finishSwipe(st) {
+    const idx = swipeIndex();
+    if (!idx) { paintCands(dicts[lang] === 'failed' ? 'Свайп недоступен: словарь не загрузился' : 'Словарь ещё загружается…'); return; }
+    const res = DugaSwipe.decode(idx, st.pts);
+    if (!res.length) { paintCands('Не узнал слово, попробуй ещё раз'); return; }
+    if (!t0) t0 = Date.now();
+    const prefix = text && !/\s$/.test(text) ? ' ' : '';
+    const mode = shiftLock ? 'all' : (shiftOnce || autoCap(text + prefix)) ? 'first' : 'none';
+    const start = text.length;
+    text += prefix + caseWord(res[0].w, mode);
+    if (!shiftLock) shiftOnce = false;
+    lastSwipe = { start, end: text.length, prefix, mode, alts: res.map(r => r.w), cur: res[0].w };
+    render();
+  }
+  function pickCandidate(w) {
+    const ls = lastSwipe;
+    if (!ls || text.length !== ls.end) return;
+    text = text.slice(0, ls.start) + ls.prefix + caseWord(w, ls.mode);
+    ls.end = text.length; ls.cur = w;
+    render();
+  }
+  // ---------- word bar and next-letter glow (mix, ray) ----------
+  const curPrefix = () => { const m = text.match(/\p{L}+$/u); return m ? m[0] : ''; };
+  const caseLike = (w, p) => p.length > 1 && p === p.toUpperCase() ? w.toUpperCase()
+    : p[0] !== p[0].toLowerCase() ? w[0].toUpperCase() + w.slice(1) : w;
+  function completions(prefix) {
+    const d = dicts[lang];
+    if (!prefix || !Array.isArray(d)) return [];
+    const p = prefix.toLowerCase(), res = [];
+    for (const w of d) if (w.length > p.length && w.startsWith(p)) { res.push(w); if (res.length === 3) break; }
+    return res;
+  }
+  // The three most likely next letters after the typed prefix, weighted by word frequency
+  function nextLetters(prefix) {
+    const d = dicts[lang];
+    if (!prefix || !Array.isArray(d)) return null;
+    const p = prefix.toLowerCase(), back = {}, wt = new Map();
+    for (const [b, a] of Object.entries(ALT[lang])) back[a] = b;
+    for (let i = 0; i < d.length; i++) {
+      const w = d[i];
+      if (w.length > p.length && w.startsWith(p)) { const c = back[w[p.length]] || w[p.length]; wt.set(c, (wt.get(c) || 0) + 1 / (i + 15)); }
+    }
+    if (!wt.size) return null;
+    const m = new Map();
+    [...wt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([c], i) => m.set(c, i + 1));
+    return m;
+  }
+  function pickCompletion(w, prefix) {
+    text = text.slice(0, text.length - prefix.length) + caseLike(w, prefix) + ' ';
+    lastSwipe = null; if (!t0) t0 = Date.now();
+    render();
+  }
+  function punct(c) {
+    if (!text.trim()) return;
+    lastSwipe = null;
+    text = text.replace(/\s+$/, '') + c + ' ';
+    render();
+  }
+  function paintCands(note) {
+    candsEl.textContent = '';
+    if (note) {
+      const s = document.createElement('span'); s.className = 'note'; s.textContent = note;
+      candsEl.appendChild(s); return;
+    }
+    if (!lastSwipe || text.length !== lastSwipe.end) {
+      if (!predictOn()) return;
+      const prefix = curPrefix();
+      for (const w of completions(prefix)) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = caseLike(w, prefix);
+        b.onclick = () => pickCompletion(w, prefix);
+        candsEl.appendChild(b);
+      }
+      return;
+    }
+    for (const w of lastSwipe.alts.slice(0, 3)) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = caseWord(w, lastSwipe.mode);
+      if (w === lastSwipe.cur) b.className = 'on';
+      b.onclick = () => pickCandidate(w);
+      candsEl.appendChild(b);
+    }
+  }
+  function toBase(clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    return [(mx(clientX - rect.left) - geo.cx) / geo.k, (geo.cy - (clientY - rect.top)) / geo.k];
+  }
+  function drawTrail(st) {
+    let s = '';
+    for (let i = 0; i < st.pts.length; i += 2) s += `${mx(geo.cx + st.pts[i] * geo.k)},${geo.cy - st.pts[i + 1] * geo.k} `;
+    trailLine.setAttribute('points', s);
+  }
+  function clearTrail() { trailLine.setAttribute('points', ''); }
+  // ---------- light layer ----------
+  const glowCool = $('glow-cool'), glowWarm = $('glow-warm');
+  // Glow from the thumb's corner follows the tempo of the last few seconds: faint and cool when slow,
+  // brighter and warm when fast; it fades out after a pause.
+  function onTyped(n) {
+    if (!light) return;
+    const now = performance.now();
+    for (let i = 0; i < n; i++) recent.push(now);
+    while (recent.length && now - recent[0] > 4000) recent.shift();
+    const cpm = recent.length / (Math.max(now - recent[0], 1500) / 60000);
+    const I = Math.min(1, cpm / 280), warm = Math.min(1, Math.max(0, (cpm - 160) / 220));
+    glowCool.style.opacity = (0.3 * I * (1 - warm)).toFixed(3);
+    glowWarm.style.opacity = (0.3 * I * warm).toFixed(3);
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => { glowCool.style.opacity = 0; glowWarm.style.opacity = 0; recent.length = 0; }, 1600);
+  }
+  // Ring on the key that took the touch; warm when the touch landed near the key's edge
+  function ripple(key, e) {
+    const kr = kbd.getBoundingClientRect(), sr = svg.getBoundingClientRect();
+    let x = e.clientX - kr.left, y = e.clientY - kr.top, warm = false;
+    if (key.t === 'ch' || key.t === 'grp') {
+      const am = (key.a0 + key.a1) / 2, rm = (key.r0 + key.r1) / 2;
+      const [px, py] = pt(rm * geo.k, am);
+      x = px + sr.left - kr.left; y = py + sr.top - kr.top;
+      const b = toBase(e.clientX, e.clientY), cx = rm * Math.cos(am * D), cy = rm * Math.sin(am * D);
+      const half = Math.min(key.r1 - key.r0, rm * (key.a1 - key.a0) * D) / 2;
+      warm = key.t === 'ch' && Math.hypot(b[0] - cx, b[1] - cy) > half * 0.75;
+    }
+    const d = document.createElement('span'), s = 56 * geo.k;
+    d.className = 'ripple' + (warm ? ' warm' : '');
+    d.style.cssText = `left:${x - s / 2}px;top:${y - s / 2}px;width:${s}px;height:${s}px`;
+    kbd.appendChild(d);
+    setTimeout(() => d.remove(), 600);
+  }
+  function buzz() { try { navigator.vibrate && navigator.vibrate(6); } catch (e) {} }
+
+  // ---------- pointer handling ----------
+  const touches = new Map();
+  let repeatTimer = 0;
+
+  function showBubble(st, label) {
+    bubble.textContent = label; bubble.hidden = false;
+    bubble.style.left = st.x + 'px';
+    bubble.style.top = Math.max(36, st.y - 72) + 'px';
+  }
+  function hideBubble() { if (!touches.size) bubble.hidden = true; }
+
+  function charOut(st) {
+    const v = st.key.t === 'grp' ? flickPick(st.key, st.p0, st.x1 - st.p0[0], st.y1 - st.p0[1]) : st.key.v;
+    let c = st.long && ALT[lang][v] ? ALT[lang][v] : v;
+    return shiftOn() ? c.toUpperCase() : c;
+  }
+
+  svg.addEventListener('contextmenu', e => e.preventDefault());
+  svg.addEventListener('pointerdown', e => {
+    const h = hit(e.clientX, e.clientY);
+    if (!h) return;
+    e.preventDefault();
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    const st = { key: h.key, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, long: false, timer: 0,
+      pts: toBase(e.clientX, e.clientY), len: 0, swipe: false };
+    st.p0 = st.pts.slice(); st.x1 = st.p0[0]; st.y1 = st.p0[1]; // start and current finger position, base units
+    touches.set(e.pointerId, st);
+    h.key.path.classList.add('down');
+    buzz();
+    if (light) ripple(h.key, e);
+    const k = h.key;
+    if (k.t === 'grp') {
+      showBubble(st, charOut(st));
+      if (Object.values(k.map).some(v => ALT[lang][v])) st.timer = setTimeout(() => { st.long = true; showBubble(st, charOut(st)); buzz(); }, 380);
+    } else if (k.t === 'ch') {
+      showBubble(st, charOut(st));
+      if (ALT[lang][k.v]) st.timer = setTimeout(() => { st.long = true; showBubble(st, charOut(st)); buzz(); }, 380);
+    } else if (k.t === 'bksp') {
+      bksp();
+      clearTimeout(repeatTimer);
+      repeatTimer = setTimeout(function rep() { bksp(); k.path && k.path.classList.add('down'); repeatTimer = setTimeout(rep, 65); }, 420);
+      st.timer = repeatTimer;
+    }
+  });
+  svg.addEventListener('pointermove', e => {
+    const st = touches.get(e.pointerId);
+    if (!st) return;
+    st.x = e.clientX; st.y = e.clientY;
+    const moved = Math.hypot(st.x - st.x0, st.y - st.y0);
+    if (st.key.t === 'grp') {
+      [st.x1, st.y1] = toBase(e.clientX, e.clientY);
+      if (glideOn()) { // mix: a long drag from a group cell onto another key is a glide, a short one a flick
+        const p = st.pts;
+        st.len += Math.hypot(st.x1 - p[p.length - 2], st.y1 - p[p.length - 1]);
+        p.push(st.x1, st.y1);
+        if (!st.swipe && st.len > GLIDE_FROM_GROUP) {
+          const h = hit(e.clientX, e.clientY);
+          if (h && h.key !== st.key && (h.key.t === 'ch' || h.key.t === 'grp')) {
+            st.swipe = true; clearTimeout(st.timer);
+            if (st.key.path) st.key.path.classList.remove('down');
+            bubble.hidden = true;
+          }
+        }
+        if (st.swipe) { drawTrail(st); return; }
+      }
+      if (moved > 12 && !st.long) clearTimeout(st.timer);
+      showBubble(st, charOut(st));
+      return;
+    }
+    if (st.key.t === 'ch') {
+      const b = toBase(e.clientX, e.clientY), p = st.pts;
+      st.len += Math.hypot(b[0] - p[p.length - 2], b[1] - p[p.length - 1]);
+      p.push(b[0], b[1]);
+      if (moved > 12 && !st.long) clearTimeout(st.timer);
+      if (!st.swipe && st.len > SWIPE_MIN) {
+        const h = hit(e.clientX, e.clientY);
+        if (h && h.key !== st.key && (h.key.t === 'ch' || h.key.t === 'grp')) {
+          st.swipe = true; clearTimeout(st.timer);
+          if (st.key.path) st.key.path.classList.remove('down');
+          bubble.hidden = true;
+        }
+      }
+      if (st.swipe) drawTrail(st);
+      else bubble.style.left = st.x + 'px', bubble.style.top = Math.max(36, st.y - 72) + 'px';
+    }
+  });
+  function end(e, cancelled) {
+    const st = touches.get(e.pointerId);
+    if (!st) return;
+    touches.delete(e.pointerId);
+    clearTimeout(st.timer);
+    if (st.key.t === 'bksp') clearTimeout(repeatTimer);
+    const k = st.key;
+    if (k.path) k.path.classList.remove('down');
+    hideBubble();
+    if (st.swipe) { clearTrail(); if (!cancelled) finishSwipe(st); return; }
+    if (cancelled) { draw(); return; }
+    const dx = st.x - st.x0;
+    switch (k.t) {
+      case 'grp':
+      case 'ch': {
+        if (k.t === 'grp') [st.x1, st.y1] = toBase(st.x, st.y);
+        insert(charOut(st));
+        if (!shiftLock) { shiftOnce = false; render(); }
+        break;
+      }
+      case 'space': {
+        if (predictOn()) { // out = ". ", in = ", ", along the arc towards the corner side = delete word
+          const [bx, by] = toBase(st.x, st.y), dir = dirOf(st.p0, bx - st.p0[0], by - st.p0[1], GAP_PUNCT_MIN);
+          if (dir === 'ccw') { delWord(); break; }
+          if (dir === 'out' || dir === 'in') { punct(dir === 'out' ? '.' : ','); break; }
+        } else if (dx < -40) { delWord(); break; }
+        const now = Date.now();
+        if (now - lastSpace < 350 && /[\p{L}\p{N}] $/u.test(text)) {
+          text = text.slice(0, -1) + '. '; lastSpace = 0; render();
+        } else { insert(' '); lastSpace = now; }
+        break;
+      }
+      case 'enter': insert('\n'); break;
+      case 'shift': {
+        const now = Date.now();
+        if (shiftLock) { shiftLock = false; shiftOnce = false; }
+        else if (now - lastShiftTap < 320) { shiftLock = true; }
+        else { shiftOnce = !shiftOnce; }
+        lastShiftTap = now; draw();
+        break;
+      }
+      case 'lang': setLang(lang === 'ru' ? 'en' : 'ru'); break;
+      case 'bksp': draw(); break;
+    }
+  }
+  svg.addEventListener('pointerup', e => end(e, false));
+  svg.addEventListener('pointercancel', e => end(e, true));
+
+  // ---------- controls ----------
+  function paintVariants() {
+    vSeg.textContent = '';
+    for (const id in VARIANTS) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.id = 'v-' + id;
+      b.textContent = VARIANTS[id].name[lang];
+      b.setAttribute('aria-pressed', id === variant);
+      b.onclick = () => setVariant(id);
+      vSeg.appendChild(b);
+    }
+  }
+  function setVariant(v) {
+    variant = v; store.set('duga-variant', v);
+    di = 0; clearText();
+    paintVariants(); buildRings(); layout(); render(); warmSwipe();
+  }
+  function setLang(l) {
+    lang = l; store.set('duga-lang', l);
+    di = 0; lastSwipe = null;
+    $('lang-ru').setAttribute('aria-pressed', l === 'ru');
+    $('lang-en').setAttribute('aria-pressed', l === 'en');
+    paintVariants(); buildRings(); layout(); render(); warmSwipe();
+  }
+  const MODE_NAMES = { swipe: 'Свайп', flick: 'Флик', mix: 'Микс', ray: 'Луч' };
+  function paintSummary() {
+    $('summary').textContent = [VARIANTS[variant].name[lang], MODE_NAMES[mode], lang.toUpperCase(),
+      side === 'left' ? 'левая' : 'правая'].join(' · ');
+  }
+  $('gear').onclick = () => {
+    const s = $('settings'); s.hidden = !s.hidden;
+    $('gear').setAttribute('aria-expanded', !s.hidden);
+  };
+  function setSide(s) {
+    side = s; store.set('duga-side', s);
+    document.querySelector('.app').classList.toggle('left', s === 'left');
+    $('side-left').setAttribute('aria-pressed', s === 'left');
+    $('side-right').setAttribute('aria-pressed', s === 'right');
+    layout();
+  }
+  $('side-left').onclick = () => setSide('left');
+  $('side-right').onclick = () => setSide('right');
+  function setLight(on) {
+    light = on; store.set('duga-light', on ? 'on' : 'off');
+    $('light').setAttribute('aria-pressed', on);
+    if (!on) { glowCool.style.opacity = 0; glowWarm.style.opacity = 0; }
+    render();
+  }
+  $('light').onclick = () => setLight(!light);
+  function paintModes() { for (const m of MODES) $('mode-' + m).setAttribute('aria-pressed', m === mode); }
+  function setMode(m) {
+    mode = m; store.set('duga-mode', m);
+    lastSwipe = null;
+    paintModes(); buildRings(); layout(); render(); warmSwipe();
+  }
+  for (const m of MODES) $('mode-' + m).onclick = () => setMode(m);
+  function goDrill(step) {
+    const n = drills().length;
+    di = Math.min(Math.max(di + step, 0), n - 1);
+    clearText(); render();
+  }
+  $('lang-ru').onclick = () => setLang('ru');
+  $('lang-en').onclick = () => setLang('en');
+  prevBtn.onclick = () => goDrill(-1);
+  nextBtn.onclick = () => goDrill(1);
+  const size = $('size');
+  size.value = userScale;
+  size.addEventListener('input', () => { userScale = Number(size.value); store.set('duga-size', userScale); layout(); });
+  $('reset').onclick = () => { clearText(); render(); };
+
+  new ResizeObserver(() => layout()).observe(kbd);
+  paintModes();
+  setSide(side); setLight(light);
+  window.DUGA.debug = { rings: () => rings, geo: () => geo, spot: w => { SPOT_W = w; } }; // for tests
+  setLang(lang);
+})();
+</script>
