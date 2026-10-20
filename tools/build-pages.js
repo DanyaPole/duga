@@ -11,7 +11,8 @@ const head = '<!doctype html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\
   '<meta name="darkreader-lock">\n' + // so the Dark Reader extension leaves its colours alone
   '<title>Клавиатура Дуга</title>\n' +
   '<meta name="description" content="Бесплатная клавиатура для набора одной рукой: дуга под большой палец.">\n' +
-  '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>\n' +
+  // same reset as the artifact host: the page fits the screen between the phone's system bars
+  '<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>\n' +
   '</head>\n<body>\n';
 fs.writeFileSync(path.join(out, 'index.html'), head + page + '\n</body>\n</html>\n');
 for (const f of ['swipe.js', 'dict_ru.txt', 'dict_en.txt']) fs.copyFileSync(path.join(root, f), path.join(out, f));

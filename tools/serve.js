@@ -10,7 +10,7 @@ http.createServer((req, res) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     let body = data;
     if (file.endsWith('.html') && !data.includes('<!doctype')) // mimic the artifact skeleton
-      body = Buffer.concat([Buffer.from('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>'), data]);
+      body = Buffer.concat([Buffer.from('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style></head><body>'), data]);
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
     res.end(body);
   });

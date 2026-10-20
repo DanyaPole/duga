@@ -22,6 +22,7 @@
   --bad: #B23A2F;
   --h1: #7CC3D8; --h2: #A6D7E4; --h3: #CBE7EF; /* likely next letters, strongest first */
   --warm: #D9822B; /* light layer: fast tempo, off-centre taps */
+  --scrim: rgba(13, 18, 21, .45);
   --ui: "Golos Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -29,15 +30,16 @@
   :root:not([data-theme="light"]) {
     --bg: #0D1215; --panel: #141B1F; --kbd: #0A0E10; --key: #20292E; --fn: #2C373D;
     --zone: #1B323B; --press: #2F6070; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2;
-    --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; color-scheme: dark;
+    --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0D1215; --panel: #141B1F; --kbd: #0A0E10; --key: #20292E; --fn: #2C373D;
   --zone: #1B323B; --press: #2F6070; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2;
-  --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; color-scheme: dark;
+  --accent: #55BAD7; --accent-fg: #06222B; --ok: #6FCF97; --bad: #F0867B; --h1: #327B92; --h2: #265E72; --h3: #1E4859; --warm: #F2B25C; --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
 }
 html, body { height: 100%; }
+html { touch-action: manipulation; } /* no double-tap zoom on iPhone */
 body {
   background: var(--bg); color: var(--fg); font-family: var(--ui); font-size: 15px;
   overscroll-behavior: none; margin: 0;
@@ -53,11 +55,12 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-header { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+header { display: flex; align-items: center; gap: 8px; }
+header .btn { flex: none; }
 h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-.summary { font-size: 12px; color: var(--muted); margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary { font-size: 12px; color: var(--muted); margin-right: auto; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .settings { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
-.settings[hidden] { display: none; }
+.settings[hidden], .seg[hidden] { display: none; }
 /* measurements report: full-screen sheet over the keyboard */
 .report {
   position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto;
@@ -211,6 +214,69 @@ details b { color: var(--fg); font-weight: 500; }
   width: auto; pointer-events: none;
 }
 .trail polyline { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+/* «Пульс»: the star of 8 directions */
+.kbd .pstar { fill: var(--key); stroke: var(--line); stroke-width: 1; }
+.kbd .psep { stroke: var(--line); stroke-width: 1; }
+.kbd .pwedge { fill: transparent; }
+.kbd .pwedge.on { fill: var(--press); }
+.kbd .phub { fill: var(--fn); }
+.kbd text.g1 { fill: var(--accent); font-weight: 600; }
+.kbd text.g2, .kbd text.g3 { fill: var(--accent); }
+/* sheets: welcome, help, guided test */
+.sheet {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center;
+  background: var(--scrim); padding-top: env(safe-area-inset-top, 0px);
+}
+.sheet[hidden] { display: none; }
+.sheet.at-top { align-items: flex-start; } /* when the system keyboard will open below */
+.sheet.at-top .sheet-card { border-radius: 0 0 16px 16px; }
+.sheet-card {
+  background: var(--bg); width: 100%; max-width: 480px; max-height: 100%; overflow-y: auto; box-sizing: border-box;
+  border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 12px;
+  padding-block: 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+}
+.sheet-card > * { flex-shrink: 0; } /* the card scrolls as a whole; nothing inside gets squeezed */
+.sheet-card h2 { font-size: 21px; font-weight: 600; margin: 0; text-wrap: balance; }
+.sheet-card h3 { font-size: 15px; font-weight: 600; margin: 6px 0 0; }
+.sheet-card p { margin: 0; line-height: 1.45; }
+.sheet-card ul { margin: 0; padding-left: 20px; display: grid; gap: 5px; line-height: 1.45; }
+.sheet-card .eyebrow { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sheet-card .muted { color: var(--muted); font-size: 14px; }
+.choice { display: flex; gap: 8px; flex-wrap: wrap; }
+.big {
+  font: 600 16px var(--ui); padding: 12px 14px; min-height: 48px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--fg); cursor: pointer; flex: 1 1 0; min-width: 0;
+}
+.big.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.big[aria-pressed="true"] { background: var(--zone); border-color: var(--accent); }
+.rate { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rate .big { padding: 10px 0; }
+.scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.linkbtn { background: none; border: 0; color: var(--muted); text-decoration: underline; font: 14px var(--ui); padding: 8px; cursor: pointer; align-self: center; }
+.sheet-card textarea {
+  font: 16px var(--ui); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; width: 100%; box-sizing: border-box; resize: vertical;
+}
+.res { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+.res th, .res td { padding: 6px 5px; border-bottom: 1px solid var(--line); text-align: right; }
+.res th:first-child, .res td:first-child { text-align: left; }
+.res th { font-weight: 500; color: var(--muted); font-size: 12px; vertical-align: bottom; }
+.star-demo { display: block; margin: 0 auto; width: 210px; height: 210px; max-width: 100%; flex: none; }
+.star-demo .pstar { fill: var(--key); stroke: var(--line); }
+.star-demo .psep { stroke: var(--line); }
+.star-demo text { fill: var(--fg); font-family: var(--ui); text-anchor: middle; dominant-baseline: central; }
+.star-demo text.small { fill: var(--muted); }
+.star-demo .arrow { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.phrase .nav.icon { font-size: 15px; }
+/* landscape on a phone: ask to turn it */
+.rotate { display: none; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .rotate {
+    display: flex; position: fixed; inset: 0; z-index: 60; background: var(--bg); color: var(--fg);
+    align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: 18px;
+  }
+}
 </style>
 
 <div class="app">
@@ -218,7 +284,10 @@ details b { color: var(--fg); font-weight: 500; }
     <header>
       <h1>Дуга</h1>
       <span class="summary" id="summary"></span>
-      <button id="reset" class="btn" type="button">Заново</button>
+      <button id="test-open" class="btn" type="button">Тест</button>
+      <button id="help-open" class="btn icon" type="button" aria-label="Как печатать">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.8 8a2.3 2.3 0 1 1 3.2 2.1c-.7.3-1 .8-1 1.5v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14.6" r="1" fill="currentColor"/></svg>
+      </button>
       <button id="report-open" class="btn icon" type="button" aria-label="Замеры" aria-controls="report">
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -233,6 +302,7 @@ details b { color: var(--fg); font-weight: 500; }
         <button id="mode-flick" type="button" aria-pressed="false">Флик</button>
         <button id="mode-mix" type="button" aria-pressed="false">Микс</button>
         <button id="mode-ray" type="button" aria-pressed="false">Луч</button>
+        <button id="mode-pulse" type="button" aria-pressed="false">Пульс</button>
       </div>
       <div class="seg" role="group" aria-label="Язык">
         <button id="lang-ru" type="button" aria-pressed="true">RU</button>
@@ -248,33 +318,13 @@ details b { color: var(--fg); font-weight: 500; }
     <div class="phrase">
       <div class="head">
         <span class="lbl" id="dlbl"></span>
+        <button id="reset" class="nav icon" type="button" aria-label="Набрать заново">↺</button>
         <button id="prev" class="nav" type="button" aria-label="Предыдущее упражнение">‹</button>
         <button id="next" class="nav" type="button" aria-label="Следующее упражнение">›</button>
       </div>
       <div id="ptext"></div>
     </div>
     <div class="out" id="out" aria-live="polite"></div>
-    <details id="help">
-      <summary>Раскладки и жесты</summary>
-      <ul>
-        <li><b>Слоги</b>: все гласные в ближнем кольце, твёрдые слева, мягкие справа. Частые согласные во втором кольце, редкие в третьем. Согласные стоят так, чтобы частые слоги и сочетания (ст, но, ко, ра, пр) набирались коротким движением.</li>
-        <li><b>ЙЦУКЕН / QWERTY</b>: ряды обычной клавиатуры, свёрнутые в дуги. Нижний ряд ближе к углу, верхний дальше. Знакомо сразу, зато частые е, н, к далеко.</li>
-        <li><b>Замеры</b> (кнопка со столбиками вверху): набери фразу упражнения до конца, и попытка запишется. Видно путь пальца и касания на знак, долю дальней зоны, скорость и точность для каждого набора раскладка · режим · рука, кривую обучения и карту промахов. Там же можно набрать ту же фразу своей обычной клавиатурой для сравнения. Данные хранятся только в этом браузере.</li>
-        <li><b>Левая / Правая</b>: под какой большой палец зеркалить дугу.</li>
-        <li><b>Свет</b>: кольцо на нажатой клавише подтверждает, какая сработала; тёплое кольцо значит, что палец попал у края клавиши. Свечение из угла разгорается от темпа: холодное на медленном наборе, тёплое на быстром. Новые буквы в тексте появляются цветом и «высыхают» за секунду.</li>
-        <li>Бледные клавиши не нужны в текущем упражнении, но работают.</li>
-        <li>Тап по сектору — буква. Весь сектор работает как клавиша, промахнуться сложно.</li>
-        <li><b>Флик</b>: буквы собраны в крупные группы по 3–4. Тап — буква посередине. Смахни вдоль дуги — соседняя буква слева или справа, смахни наружу — верхняя. Мелкая буква стоит там, куда её надо смахнуть. Под пальцем всплывает буква, которая будет введена, отпусти палец, чтобы ввести её, или верни палец в центр, чтобы передумать. Свайп по словам тоже работает: веди палец из клетки в клетку через буквы слова. Можно просто проводить через клетки, а если вести через сами мелкие буквы, слово угадается точнее.</li>
-        <li><b>Микс</b>: два ближних кольца, куда палец достаёт без усилия, это обычные клавиши (тап и свайп по словам). Дальние кольца с редкими буквами собраны в группы с фликом, чтобы не тянуться и не целиться. Над клавиатурой три подсказки слова по набранным буквам: один тап вместо дописывания. Пробел: смах наружу ставит «. », внутрь «, », вдоль дуги в сторону угла стирает слово.</li>
-        <li><b>Луч</b>: все буквы обычные клавиши, как в «Свайпе», но после первой буквы три самые вероятные следующие подсвечиваются (чем темнее, тем вероятнее). Глаз сразу видит, куда тянуться, а раскладка запоминается сама. Подсказки слов и жесты пробела те же, что в «Миксе».</li>
-        <li>Свайп (режимы «Свайп», «Микс», «Луч»): веди палец по буквам слова, не отрывая. Слово вставится целиком, пробел перед ним поставится сам. Другие варианты — кнопки над клавиатурой. ⌫ сразу после свайпа стирает всё слово.</li>
-        <li>Удержание: е → ё, ь → ъ, - → —, . → …</li>
-        <li>Двойной пробел — точка и пробел.</li>
-        <li>Смах влево по пробелу — стереть слово. Удерживай ⌫ — стирает подряд.</li>
-        <li>⇧ один раз — одна заглавная, дважды — капслок. После точки заглавная включается сама.</li>
-        <li>Подсвечены два кольца, куда большой палец достаёт без напряжения.</li>
-      </ul>
-    </details>
     <div class="cands" id="cands" aria-label="Варианты слова"></div>
   </div>
   <div class="kbd" id="kbd">
@@ -286,6 +336,10 @@ details b { color: var(--fg); font-weight: 500; }
   </div>
 </div>
 <div class="bubble" id="bubble" hidden></div>
+<section class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="sheet-card" id="sheet-card"></div>
+</section>
+<div class="rotate" aria-hidden="true">Поверни телефон вертикально — Дуга рассчитана на одну руку.</div>
 
 <section class="report" id="report" hidden aria-label="Замеры">
   <div class="report-in">
@@ -415,7 +469,7 @@ details b { color: var(--fg); font-weight: 500; }
   // Input modes. swipe = tap + glide; flick = grouped letters; mix = single keys in the thumb zone +
   // flick groups beyond it + glide + word bar; ray = single keys + glide + word bar + glow of likely
   // next letters. mix and ray also get space-bar gestures for . and ,
-  const MODES = ['swipe', 'flick', 'mix', 'ray'];
+  const MODES = ['swipe', 'flick', 'mix', 'ray', 'pulse'];
   const GLIDE_FROM_GROUP = 45; // a drag that starts on a group cell becomes a glide only after travelling this far
   const GROUPED_FROM_RING = 2; // in mix mode letter rings from this index outwards are flick groups
   // Glide over flick groups: a letter's target point lies between the cell centre (0) and its own spot (1),
@@ -426,6 +480,53 @@ details b { color: var(--fg); font-weight: 500; }
   const FREQ = {
     ru: 'оеиан.тс,рвлкмпдуяыьгзбчйхжшюцщэф-?!:',
     en: "eatoin.sr,hldcumfpgwybvkxjqz'?!-:@",
+  };
+
+  // «Пульс»: a star of 8 directions that works from wherever the thumb lands in the big zone, so the
+  // thumb barely travels. Straight flick = big letter (c), flick and turn left / right = small outer
+  // letter (l / r), flick out and back = small inner letter (b). A tap without moving types the letter
+  // under the finger, the star's centre or anywhere outside it is space.
+  // Petals by direction (0 = right, then counter-clockwise every 45°, right-hand geometry). The 8 most
+  // frequent letters are straight flicks; inside a petal letters pair up by sound (т/д, с/з, н/м, р/л,
+  // и/ы/й, а/я) so they are easy to remember. The easiest directions (along the thumb's arc: up-right
+  // and down-left) carry о and е; extension (up-left) and flexion (down-right) carry с and р.
+  const PULSE = {
+    ru: [
+      { c: 'н', l: 'м', r: 'ь', b: 'щ' }, { c: 'о', l: 'у', r: 'б', b: 'ю' },
+      { c: 'а', l: 'в', r: 'я', b: 'ф' }, { c: 'с', l: 'з', r: 'ч', b: 'ш' },
+      { c: 'и', l: 'ы', r: 'й', b: '?' }, { c: 'е', l: 'к', r: 'г', b: 'э' },
+      { c: 'т', l: 'д', r: 'п', b: 'ц' }, { c: 'р', l: 'л', r: 'х', b: 'ж' },
+    ],
+    en: [
+      { c: 'o', l: 'u', r: 'f', b: ':' }, { c: 'e', l: 'd', r: 'w', b: 'z' },
+      { c: 't', l: 'h', r: 'p', b: '-' }, { c: 's', l: 'b', r: 'v', b: 'q' },
+      { c: 'i', l: 'c', r: 'g', b: "'" }, { c: 'a', l: 'l', r: 'y', b: '?' },
+      { c: 'n', l: 'm', r: 'k', b: '' }, { c: 'r', l: 'x', r: 'j', b: '' },
+    ],
+  };
+  const PULSE_HOME = [262, 135];   // star centre: radius from the corner (base units) and angle, in the thumb zone
+  const PULSE_R = 96;              // star radius
+  const PULSE_PAD = 158;           // the pulse zone starts beyond the service rings
+  const P_MIN = 16;                // shorter = a tap
+  const P_TURN = 14;               // the turn after the first stroke must be at least this long
+  const P_SPOT = { c: [52, 0], l: [86, 14], r: [86, -14], b: [24, 0] }; // label: distance from centre, angle off the petal
+  const PH = [PULSE_HOME[0] * Math.cos(PULSE_HOME[1] * Math.PI / 180), PULSE_HOME[0] * Math.sin(PULSE_HOME[1] * Math.PI / 180)];
+  const pulseAlt = l => ({ ...ALT[l], '?': '!' });
+
+  // Short everyday messages: the guided test and the drills everyone shares
+  const TEST_PHRASES = {
+    ru: ['Привет как дела', 'Скоро буду дома', 'Купи хлеб и молоко'],
+    en: ['Hi how are you', 'See you soon', 'Buy bread and milk'],
+  };
+  const PULSE_DRILLS = {
+    ru: [
+      { t: 'Пульс: только прямые смахи', x: 'Тесто и сено' },
+      { t: 'Пульс: смах и поворот', x: 'Мама мыла раму' },
+    ],
+    en: [
+      { t: 'Пульс: только прямые смахи', x: 'Tea at noon' },
+      { t: 'Пульс: смах и поворот', x: 'The cat sat on the mat' },
+    ],
   };
 
   const store = {
@@ -455,13 +556,26 @@ details b { color: var(--fg); font-weight: 500; }
   const candsEl = $('cands'), trailSvg = $('trail'), trailLine = $('trail-line');
   const ptext = $('ptext'), dlbl = $('dlbl'), prevBtn = $('prev'), nextBtn = $('next'), vSeg = $('variants');
 
-  const drills = () => [...VARIANTS[variant][lang].drills, ...COMMON[lang]];
-  const drill = () => drills()[di];
+  let test = null; // the guided test while it runs, see «guided test» below
+  const shortMsgs = () => TEST_PHRASES[lang].map(x => ({ t: 'Короткое сообщение', x }));
+  // Drills that fit the current mode: layout drills for the ring keyboards, star drills for «Пульс»
+  function drills() {
+    if (test && test.typing) return test.phrases.map((x, i) => ({ t: `Тест · ${TEST_INFO[test.order[test.si]].name} · фраза ${i + 1} из ${test.phrases.length}`, x }));
+    const own = mode === 'pulse' ? PULSE_DRILLS[lang] : mode === 'flick' ? [] : VARIANTS[variant][lang].drills;
+    return [...own, ...shortMsgs(), ...COMMON[lang]];
+  }
+  const drill = () => { const d = drills(); return d[Math.min(di, d.length - 1)]; };
+  // Same phrase counts as done regardless of case, ё/е and extra spaces
+  const norm = s => s.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  // Keep the same phrase when the drill list changes (switching mode or layout)
+  function keepPhrase(prevX) { const i = drills().findIndex(d => d.x === prevX); di = i < 0 ? 0 : i; }
 
   function buildRings() {
     const V = VARIANTS[variant][lang];
     const spec = mode === 'flick' && V.flick ? V.flick.map(groups => ({ groups })) : V.rings;
-    const all = [...fnRings, ...spec.map((s, i) => ({ ...s, band: BANDS[i], zone: i < ZONE_RINGS }))];
+    const all = mode === 'pulse'
+      ? [...fnRings, { keys: [{ t: 'pulse', w: 1 }], band: [PULSE_PAD, BANDS[BANDS.length - 1][1]], zone: true }]
+      : [...fnRings, ...spec.map((s, i) => ({ ...s, band: BANDS[i], zone: i < ZONE_RINGS }))];
     rings = all.map((rg, ri) => {
       let keys;
       if (rg.freq) {
@@ -531,8 +645,53 @@ details b { color: var(--fg); font-weight: 500; }
     const rm = (key.r0 + key.r1) / 2, am = (key.a0 + key.a1) / 2, da = (key.a1 - key.a0) * 0.29, dr = (key.r1 - key.r0) * 0.3;
     return { c: [rm, am], cw: [rm, am - da], ccw: [rm, am + da], out: [rm + dr, am], in: [rm - dr, am] };
   }
-  const glideOn = () => true; // every mode glides; in flick mode a drag that leaves its cell is a glide
-  const predictOn = () => mode === 'mix' || mode === 'ray';
+  const glideOn = () => mode !== 'pulse'; // in flick mode a drag that leaves its cell is a glide
+  const predictOn = () => mode === 'mix' || mode === 'ray' || mode === 'pulse'; // word bar, space gestures, glow
+
+  // ---------- «Пульс» strokes ----------
+  const petalOf = (x, y) => ((Math.round(Math.atan2(y, x) / (Math.PI / 4)) % 8) + 8) % 8;
+  function pulseSpot(p, kind) { // a label's position in base units
+    const [r, da] = P_SPOT[kind], a = (p * 45 + da) * D;
+    return [PH[0] + r * Math.cos(a), PH[1] + r * Math.sin(a)];
+  }
+  function pulseSlot(p, kind) {
+    const pet = PULSE[lang][p];
+    return pet[kind] ? { petal: p, kind, v: pet[kind] } : { petal: p, kind: 'c', v: pet.c };
+  }
+  // A tap: the letter whose label is nearest; the centre and anything outside the star is space
+  function pulseTap(x, y) {
+    const d = Math.hypot(x - PH[0], y - PH[1]);
+    if (d < 15 || d > PULSE_R + 10) return { petal: -1, kind: 'space', v: ' ' };
+    let best = null, bd = 1e9;
+    for (let p = 0; p < 8; p++) for (const kind of ['c', 'l', 'r', 'b']) {
+      if (!PULSE[lang][p][kind]) continue;
+      const [sx, sy] = pulseSpot(p, kind), dd = Math.hypot(x - sx, y - sy);
+      if (dd < bd) { bd = dd; best = { petal: p, kind, v: PULSE[lang][p][kind] }; }
+    }
+    return best;
+  }
+  // A stroke (flat base-unit points, first = where the finger landed): straight, turn, or out-and-back
+  function pulseResolve(pts) {
+    const ox = pts[0], oy = pts[1], n = pts.length / 2;
+    const P = i => [pts[2 * i] - ox, pts[2 * i + 1] - oy];
+    let far = 0, fi = 0;
+    for (let i = 1; i < n; i++) { const [x, y] = P(i), d = Math.hypot(x, y); if (d > far) { far = d; fi = i; } }
+    if (far < P_MIN) return pulseTap(ox, oy);
+    const [ex, ey] = P(n - 1), endD = Math.hypot(ex, ey);
+    if (far >= 24 && endD < far * 0.5) { const [fx, fy] = P(fi); return pulseSlot(petalOf(fx, fy), 'b'); }
+    // the corner: the point farthest from the straight line origin → end
+    const L = endD || 1, nx = -ey / L, ny = ex / L;
+    let dev = 0, ci = 0;
+    for (let i = 1; i < n - 1; i++) { const [x, y] = P(i), d = Math.abs(x * nx + y * ny); if (d > dev) { dev = d; ci = i; } }
+    if (dev >= Math.max(7, 0.14 * L)) {
+      const [cx, cy] = P(ci);
+      let dt = Math.atan2(ey - cy, ex - cx) - Math.atan2(cy, cx);
+      dt = Math.atan2(Math.sin(dt), Math.cos(dt));
+      if (Math.abs(dt) >= 130 * D) return pulseSlot(petalOf(cx, cy), 'b');
+      if (Math.abs(dt) >= 30 * D && Math.hypot(ex - cx, ey - cy) >= P_TURN) return pulseSlot(petalOf(cx, cy), dt > 0 ? 'l' : 'r');
+    }
+    return pulseSlot(petalOf(ex, ey), 'c');
+  }
 
   const shiftOn = () => shiftLock || shiftOnce || autoCap();
   function autoCap(t = text) { return t === '' || /[.!?…]\s$/.test(t) || t.endsWith('\n'); }
@@ -561,6 +720,9 @@ details b { color: var(--fg); font-weight: 500; }
     const pad = 4;
     const cx = W + pad;
     k = Math.min(k, (cx - 6) / 382);
+    // short screens (iPhone SE, Safari with its bars): the keyboard takes at most ~56% of the height
+    const vh = window.innerHeight || 800;
+    k = Math.min(k, vh * 0.56 / 386);
     const outer = 382 * k;
     const H = Math.ceil(outer + 4);
     geo = { cx, cy: H + pad, k, W, H };
@@ -597,6 +759,11 @@ details b { color: var(--fg); font-weight: 500; }
     rings.forEach(rg => rg.keys.forEach(key => {
       const r0 = key.r0 * k, r1 = key.r1 * k, rm = (r0 + r1) / 2;
       const ins = gap + cr, da = ins / rm / D;
+      if (key.t === 'pulse') {
+        key.path = el('path', { d: sectorPath(r0 + ins, r1 - ins, key.a0 + da, key.a1 - da), class: 'k ch zone', 'stroke-width': cr * 2 }, svg);
+        drawPulse(k, need);
+        return;
+      }
       const isGrp = key.t === 'grp', isLetter = key.t === 'ch' || isGrp;
       const dim = key.t === 'ch' ? !need.has(key.v) : isGrp && !Object.values(key.map).some(v => need.has(v));
       const cls = ['k', isLetter ? 'ch' : 'fn'];
@@ -650,6 +817,40 @@ details b { color: var(--fg); font-weight: 500; }
     }
   }
 
+  // The star of «Пульс», drawn at its home spot; wedges light up under the current stroke
+  let pulseWedges = [];
+  function drawPulse(k, need) {
+    const B = (x, y) => [mx(geo.cx + x * k), geo.cy - y * k];
+    const around = (r, a) => B(PH[0] + r * Math.cos(a * D), PH[1] + r * Math.sin(a * D));
+    const [hx, hy] = B(PH[0], PH[1]), sw = side === 'left' ? 1 : 0;
+    el('circle', { cx: hx, cy: hy, r: PULSE_R * k, class: 'pstar' }, svg);
+    pulseWedges = [];
+    for (let p = 0; p < 8; p++) {
+      const a0 = p * 45 - 22.5, a1 = p * 45 + 22.5, ri = 15, ro = PULSE_R - 1;
+      const [x0, y0] = around(ro, a0), [x1, y1] = around(ro, a1), [x2, y2] = around(ri, a1), [x3, y3] = around(ri, a0);
+      pulseWedges.push(el('path', {
+        d: `M${x0},${y0}A${ro * k},${ro * k} 0 0 ${sw} ${x1},${y1}L${x2},${y2}A${ri * k},${ri * k} 0 0 ${1 - sw} ${x3},${y3}Z`,
+        class: 'pwedge',
+      }, svg));
+      const [sx0, sy0] = around(ri, a0), [sx1, sy1] = around(PULSE_R, a0);
+      el('line', { x1: sx0, y1: sy0, x2: sx1, y2: sy1, class: 'psep' }, svg);
+    }
+    el('circle', { cx: hx, cy: hy, r: 13 * k, class: 'phub' }, svg);
+    el('text', { x: hx, y: hy, class: 'small', 'font-size': 11 * Math.max(k, .85) }, svg).textContent = '␣';
+    const up = shiftOn(), SIZE = { c: 21, l: 14, r: 14, b: 11 };
+    for (let p = 0; p < 8; p++) for (const kind of ['c', 'l', 'r', 'b']) {
+      const v = PULSE[lang][p][kind];
+      if (!v) continue;
+      const [x, y] = B(...pulseSpot(p, kind));
+      const cls = [kind === 'c' ? '' : 'small'];
+      if (hints && hints.has(v)) cls.push('g' + hints.get(v));
+      if (!need.has(v)) cls.push('dim');
+      const t = el('text', { x, y, class: cls.join(' ').trim(), 'font-size': SIZE[kind] * Math.max(k, .85) }, svg);
+      t.textContent = up ? v.toUpperCase() : v;
+    }
+  }
+  const lightWedge = p => pulseWedges.forEach((w, i) => w.classList.toggle('on', i === p));
+
   function hit(clientX, clientY) {
     const rect = svg.getBoundingClientRect();
     const x = mx(clientX - rect.left), y = clientY - rect.top;
@@ -678,20 +879,23 @@ details b { color: var(--fg); font-weight: 500; }
     out.scrollTop = out.scrollHeight;
     const all = drills(), d = drill(), p = d.x;
     dlbl.textContent = `${di + 1}/${all.length} · ${d.t}`;
-    prevBtn.disabled = di === 0;
-    nextBtn.disabled = di === all.length - 1;
-    nextBtn.classList.toggle('go', text.trimEnd() === p && !nextBtn.disabled);
-    if (!recorded && t0 && text.trimEnd() === p) { recorded = true; recordAttempt(p); }
+    const done = norm(text) === norm(p), inTest = !!(test && test.typing);
+    prevBtn.disabled = inTest || di === 0;
+    nextBtn.disabled = !inTest && di === all.length - 1; // in the test › skips the phrase
+    nextBtn.setAttribute('aria-label', inTest ? 'Пропустить фразу' : 'Следующее упражнение');
+    nextBtn.classList.toggle('go', done && !nextBtn.disabled && !inTest);
+    if (!recorded && t0 && done) { recorded = true; recordAttempt(p); }
     let html = '';
+    const same = (a, b) => a.toLowerCase().replace('ё', 'е') === b.toLowerCase().replace('ё', 'е');
     for (let i = 0; i < p.length; i++) {
       const c = esc(p[i]);
-      if (i < text.length) html += `<span class="${text[i] === p[i] ? 'ok' : 'bad'}">${c}</span>`;
+      if (i < text.length) html += `<span class="${same(text[i], p[i]) ? 'ok' : 'bad'}">${c}</span>`;
       else if (i === text.length) html += `<span class="cur">${c}</span>`;
       else html += c;
     }
     ptext.innerHTML = html;
     paintSummary();
-    hints = mode === 'ray' && !(lastSwipe && text.length === lastSwipe.end) ? nextLetters(curPrefix()) : null;
+    hints = (mode === 'ray' || mode === 'pulse') && !(lastSwipe && text.length === lastSwipe.end) ? nextLetters(curPrefix()) : null;
     paintCands();
     stats();
     draw();
@@ -699,7 +903,7 @@ details b { color: var(--fg); font-weight: 500; }
   function stats() {
     const mins = t0 ? (Date.now() - t0) / 60000 : 0;
     const cpm = mins > 0.03 ? Math.round(text.length / mins) : 0;
-    const done = text.trimEnd() === drill().x, f = liveFigures(text.length);
+    const done = norm(text) === norm(drill().x), f = liveFigures(text.length);
     statsEl.innerHTML = `<span><b>${cpm || '—'}</b> зн/мин</span><span><b>${fixes}</b> исправл.</span>` +
       (text ? `<span><b>${f.tpc.toFixed(2)}</b> касан./знак</span><span><b>${f.mm.toFixed(1)}</b> мм/знак</span>` +
         `<span><b>${Math.round(f.far)}%</b> дальн. зона</span>` : '') +
@@ -739,9 +943,9 @@ details b { color: var(--fg); font-weight: 500; }
   const newMetrics = () => ({ touches: 0, far: 0, pathPx: 0, inserted: 0, lastUp: null, taps: [] });
   let M = newMetrics(), recorded = false;
   const loadJSON = (k, d) => { try { return JSON.parse(store.get(k)) || d; } catch (e) { return d; } };
-  const attempts = loadJSON('duga-attempts', []), misses = loadJSON('duga-misses', []);
+  const attempts = loadJSON('duga-attempts', []), misses = loadJSON('duga-misses', []), tests = loadJSON('duga-tests', []);
   const saveJSON = (k, v, cap) => { if (v.length > cap) v.splice(0, v.length - cap); store.set(k, JSON.stringify(v)); };
-  const cfgName = () => [VARIANTS[variant].name[lang], MODE_NAMES[mode], side === 'left' ? 'левая' : 'правая'].join(' · ');
+  const cfgName = () => [...setupParts(), side === 'left' ? 'левая' : 'правая'].join(' · ');
   const geomKey = () => variant + '/' + lang + '/' + mode;
   function liveFigures(n) {
     return {
@@ -751,12 +955,19 @@ details b { color: var(--fg); font-weight: 500; }
     };
   }
   function recordAttempt(phrase) {
-    const ms = Date.now() - t0, n = phrase.length, f = liveFigures(n);
-    attempts.push({
+    const ms = Math.max(1, Date.now() - t0), n = phrase.length, f = liveFigures(n);
+    const a = {
       at: Date.now(), cfg: cfgName(), lang, layout: variant, mode, side, phrase, ms,
       cpm: Math.round(n / (ms / 60000)), acc: Math.round(100 * n / Math.max(n, M.inserted)),
       tpc: +f.tpc.toFixed(2), mm: +f.mm.toFixed(1), far: Math.round(f.far),
-    });
+    };
+    if (test && test.typing) { // part of the guided test: keep it there and move on after a short pause
+      a.test = test.at;
+      test.res[test.order[test.si]].attempts.push(a);
+      const pi = test.pi, si = test.si;
+      setTimeout(() => { if (test && test.typing && test.pi === pi && test.si === si) nextTestPhrase(true); }, 700);
+    }
+    attempts.push(a);
     saveJSON('duga-attempts', attempts, 1000);
     if (!$('report').hidden) paintReport();
   }
@@ -792,7 +1003,10 @@ details b { color: var(--fg); font-weight: 500; }
     for (const [base, alt] of Object.entries(ALT[lang])) if (/\p{L}/u.test(alt)) fold[alt] = base;
     return (swipeCache[id] = DugaSwipe.build(dicts[lang], keyPos, fold));
   }
-  function warmSwipe() { if (glideOn()) { loadDict(lang); setTimeout(swipeIndex, 0); } }
+  function warmSwipe() {
+    if (glideOn() || predictOn()) loadDict(lang);
+    if (glideOn()) setTimeout(swipeIndex, 0);
+  }
   function caseWord(w, mode) {
     if (mode === 'all') return w.toUpperCase();
     return mode === 'first' ? w[0].toUpperCase() + w.slice(1) : w;
@@ -938,9 +1152,24 @@ details b { color: var(--fg); font-weight: 500; }
   function hideBubble() { if (!touches.size) bubble.hidden = true; }
 
   function charOut(st) {
+    if (st.key.t === 'pulse') {
+      const res = pulseResolve(st.pts);
+      if (res.kind === 'space') return ' ';
+      const alt = pulseAlt(lang), c = st.long && alt[res.v] ? alt[res.v] : res.v;
+      return shiftOn() ? c.toUpperCase() : c;
+    }
     const v = st.key.t === 'grp' ? flickPick(st.key, st.p0, st.x1 - st.p0[0], st.y1 - st.p0[1]) : st.key.v;
     let c = st.long && ALT[lang][v] ? ALT[lang][v] : v;
     return shiftOn() ? c.toUpperCase() : c;
+  }
+  const bubbleLabel = c => c === ' ' ? '␣' : c;
+  // «Пульс»: holding still for a moment picks the alternative (е → ё, ь → ъ, ? → !)
+  function pulseHold(st) {
+    clearTimeout(st.timer);
+    st.timer = setTimeout(() => {
+      const res = pulseResolve(st.pts);
+      if (res.kind !== 'space' && pulseAlt(lang)[res.v]) { st.long = true; showBubble(st, charOut(st)); buzz(); }
+    }, 420);
   }
 
   svg.addEventListener('contextmenu', e => e.preventDefault());
@@ -957,11 +1186,16 @@ details b { color: var(--fg); font-weight: 500; }
     if (Math.hypot(st.p0[0], st.p0[1]) > FAR_R) M.far++;
     if (M.lastUp) M.pathPx += Math.hypot(e.clientX - M.lastUp[0], e.clientY - M.lastUp[1]);
     touches.set(e.pointerId, st);
-    h.key.path.classList.add('down');
+    if (h.key.t !== 'pulse') h.key.path.classList.add('down');
     buzz();
     if (light) ripple(h.key, e);
     const k = h.key;
-    if (k.t === 'grp') {
+    if (k.t === 'pulse') {
+      st.anchor = st.p0.slice();
+      showBubble(st, bubbleLabel(charOut(st)));
+      lightWedge(pulseResolve(st.pts).petal);
+      pulseHold(st);
+    } else if (k.t === 'grp') {
       showBubble(st, charOut(st));
       if (Object.values(k.map).some(v => ALT[lang][v])) st.timer = setTimeout(() => { st.long = true; showBubble(st, charOut(st)); buzz(); }, 380);
     } else if (k.t === 'ch') {
@@ -980,6 +1214,14 @@ details b { color: var(--fg); font-weight: 500; }
     M.pathPx += Math.hypot(e.clientX - st.x, e.clientY - st.y);
     st.x = e.clientX; st.y = e.clientY;
     const moved = Math.hypot(st.x - st.x0, st.y - st.y0);
+    if (st.key.t === 'pulse') {
+      const b = toBase(e.clientX, e.clientY);
+      st.pts.push(b[0], b[1]);
+      if (Math.hypot(b[0] - st.anchor[0], b[1] - st.anchor[1]) > 4) { st.anchor = b; st.long = false; pulseHold(st); }
+      showBubble(st, bubbleLabel(charOut(st)));
+      lightWedge(pulseResolve(st.pts).petal);
+      return;
+    }
     if (st.key.t === 'grp') {
       [st.x1, st.y1] = toBase(e.clientX, e.clientY);
       if (glideOn()) { // mix: a long drag from a group cell onto another key is a glide, a short one a flick
@@ -1030,7 +1272,15 @@ details b { color: var(--fg); font-weight: 500; }
     if (st.swipe) { clearTrail(); if (!cancelled) finishSwipe(st); return; }
     if (cancelled) { draw(); return; }
     const dx = st.x - st.x0;
+    if (k.t === 'pulse') lightWedge(-1);
     switch (k.t) {
+      case 'pulse': {
+        const c = charOut(st);
+        if (c === ' ') { insert(' '); lastSpace = Date.now(); break; }
+        insert(c);
+        if (!shiftLock) { shiftOnce = false; render(); }
+        break;
+      }
       case 'grp':
       case 'ch': {
         if (k.t === 'grp') [st.x1, st.y1] = toBase(st.x, st.y);
@@ -1080,8 +1330,9 @@ details b { color: var(--fg); font-weight: 500; }
     }
   }
   function setVariant(v) {
+    const prevX = drill().x;
     variant = v; store.set('duga-variant', v);
-    di = 0; clearText();
+    keepPhrase(prevX); clearText();
     paintVariants(); buildRings(); layout(); render(); warmSwipe();
   }
   function setLang(l) {
@@ -1091,10 +1342,12 @@ details b { color: var(--fg); font-weight: 500; }
     $('lang-en').setAttribute('aria-pressed', l === 'en');
     paintVariants(); buildRings(); layout(); render(); warmSwipe();
   }
-  const MODE_NAMES = { swipe: 'Свайп', flick: 'Флик', mix: 'Микс', ray: 'Луч' };
+  const MODE_NAMES = { swipe: 'Свайп', flick: 'Флик', mix: 'Микс', ray: 'Луч', pulse: 'Пульс' };
+  // «Пульс» has its own star, the layout choice does not apply to it
+  const setupParts = () => mode === 'pulse' ? [MODE_NAMES[mode]] : [VARIANTS[variant].name[lang], MODE_NAMES[mode]];
   function paintSummary() {
-    $('summary').textContent = [VARIANTS[variant].name[lang], MODE_NAMES[mode], lang.toUpperCase(),
-      side === 'left' ? 'левая' : 'правая'].join(' · ');
+    $('summary').textContent = [...setupParts(), lang.toUpperCase(), side === 'left' ? 'левая' : 'правая'].join(' · ');
+    vSeg.hidden = mode === 'pulse';
   }
   $('gear').onclick = () => {
     const s = $('settings'); s.hidden = !s.hidden;
@@ -1185,8 +1438,8 @@ details b { color: var(--fg); font-weight: 500; }
   });
   $('heat').addEventListener('change', () => { heatOn = $('heat').checked; store.set('duga-heat', heatOn ? 'on' : 'off'); draw(); });
   $('copy-data').onclick = () => {
-    const data = JSON.stringify({ app: 'Дуга', exportedAt: new Date().toISOString(), attempts, misses }, null, 1);
-    const note = `${attempts.length} попыток, ${misses.length} промахов.`;
+    const data = JSON.stringify({ app: 'Дуга', exportedAt: new Date().toISOString(), attempts, misses, tests }, null, 1);
+    const note = `${attempts.length} попыток, ${misses.length} промахов, ${tests.length} тестов.`;
     const fallback = () => {
       const f = $('copy-fallback'); f.hidden = false; f.value = data; f.focus(); f.select();
       $('data-note').textContent = 'Не удалось скопировать автоматически: данные выделены ниже, скопируй их вручную. ' + note;
@@ -1198,13 +1451,291 @@ details b { color: var(--fg); font-weight: 500; }
   $('clear-data').onclick = () => {
     if (!clearArmed) { clearArmed = true; $('clear-data').textContent = 'Точно очистить? Нажми ещё раз'; return; }
     clearArmed = false; $('clear-data').textContent = 'Очистить замеры';
-    attempts.length = 0; misses.length = 0;
-    saveJSON('duga-attempts', attempts, 1000); saveJSON('duga-misses', misses, 3000);
+    attempts.length = 0; misses.length = 0; tests.length = 0;
+    saveJSON('duga-attempts', attempts, 1000); saveJSON('duga-misses', misses, 3000); saveJSON('duga-tests', tests, 50);
     $('data-note').textContent = 'Замеры очищены.';
     paintReport(); draw();
   };
   $('report-open').onclick = () => { $('report').hidden = false; paintReport(); };
   $('report-close').onclick = () => { $('report').hidden = true; clearArmed = false; $('clear-data').textContent = 'Очистить замеры'; };
+  // ---------- sheets: welcome, help, guided test ----------
+  const sheet = $('sheet'), card = $('sheet-card'), acts = {};
+  let sheetClosable = false;
+  function openSheet(html, mount, closable = false, atTop = false) {
+    card.innerHTML = html; sheet.hidden = false; card.scrollTop = 0; sheetClosable = closable;
+    sheet.classList.toggle('at-top', atTop);
+    if (mount) mount(card);
+  }
+  function closeSheet() { sheet.hidden = true; card.innerHTML = ''; }
+  card.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && acts[b.dataset.act]) acts[b.dataset.act](b); });
+  sheet.addEventListener('click', e => { if (e.target === sheet && sheetClosable) closeSheet(); });
+  acts.close = closeSheet;
+  const pressOnly = (b, act) => card.querySelectorAll(`[data-act="${act}"]`).forEach(x => x.setAttribute('aria-pressed', x === b));
+
+  // A small picture of the «Пульс» star with two strokes: a straight flick and a flick with a turn
+  function starDemo() {
+    const C = 100, S = 0.9, X = x => side === 'left' ? 200 - x : x;
+    const at = (p, kind, r0) => {
+      const [r, da] = P_SPOT[kind], a = (p * 45 + (r0 ? 0 : da)) * D, rr = (r0 || r) * S;
+      return [X(C + rr * Math.cos(a)), C - rr * Math.sin(a)];
+    };
+    let s = '<svg class="star-demo" viewBox="0 0 200 200" role="img" aria-label="Звезда «Пульса»: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, туда и обратно — мелкая у центра">';
+    s += `<circle class="pstar" cx="${C}" cy="${C}" r="${PULSE_R * S}"/>`;
+    for (let p = 0; p < 8; p++) {
+      const a = (p * 45 - 22.5) * D;
+      s += `<line class="psep" x1="${X(C + 14 * Math.cos(a))}" y1="${C - 14 * Math.sin(a)}" x2="${X(C + PULSE_R * S * Math.cos(a))}" y2="${C - PULSE_R * S * Math.sin(a)}"/>`;
+      for (const kind of ['c', 'l', 'r', 'b']) {
+        const v = PULSE[lang][p][kind];
+        if (!v) continue;
+        const [x, y] = at(p, kind);
+        s += `<text x="${x}" y="${y}" font-size="${{ c: 17, l: 11, r: 11, b: 9 }[kind]}"${kind === 'c' ? '' : ' class="small"'}>${esc(v)}</text>`;
+      }
+    }
+    // straight flick up to «а»; flick right to «н», then a clear turn (~70°) towards the small «м»
+    const P = (x, y) => [X(C + x * S), C - y * S];
+    const arrow = pts => {
+      const q = pts.map(p => P(...p)), [x1, y1] = q[q.length - 2], [x2, y2] = q[q.length - 1];
+      const a = Math.atan2(y2 - y1, x2 - x1), h = 7, w = 0.55;
+      const head = `${x2 - h * Math.cos(a - w)},${y2 - h * Math.sin(a - w)} ${x2},${y2} ${x2 - h * Math.cos(a + w)},${y2 - h * Math.sin(a + w)}`;
+      return `<polyline class="arrow" points="${q.map(p => p.join(',')).join(' ')}"/><polyline class="arrow" points="${head}"/>`;
+    };
+    s += arrow([[0, 0], [0, 36]]) + arrow([[0, 0], [42, 0], [42 + 24 * Math.cos(70 * D), 24 * Math.sin(70 * D)]]);
+    return s + '</svg>';
+  }
+
+  const HOW = {
+    pulse: () => starDemo() + `<ul>
+      <li>Поставь палец в любое место светлой зоны и <b>смахни</b> в сторону крупной буквы.</li>
+      <li>Мелкая буква снаружи: смахни к крупной и <b>поверни</b> к мелкой.</li>
+      <li>Мелкая буква у центра: смахни <b>туда и обратно</b>.</li>
+      <li>Касание без движения — буква под пальцем, касание в центре звезды — пробел.</li>
+      <li>Под пальцем видно, какая буква получится; отпусти палец, чтобы ввести её.</li>
+      <li>Пары по звуку в одном лепестке: т·д, с·з, н·м, р·л, и·ы·й, а·я.</li></ul>`,
+    flick: () => `<ul>
+      <li>Буквы собраны в клетки по 3–4. <b>Тап</b> — крупная буква клетки.</li>
+      <li><b>Смахни</b> из клетки в сторону мелкой буквы — введётся она.</li>
+      <li>Можно вести палец из клетки в клетку через буквы слова — вставится целое слово.</li></ul>`,
+    ray: () => `<ul>
+      <li>Каждая буква — своя клавиша, <b>тапай</b> по ним.</li>
+      <li>После первой буквы три самые вероятные следующие подсвечиваются.</li>
+      <li>Над клавиатурой — подсказки слова: тап по подсказке вставит слово целиком.</li>
+      <li>Можно вести палец по буквам слова, не отрывая, — свайп.</li></ul>`,
+    mix: () => `<ul>
+      <li>Два ближних кольца — обычные клавиши: тап и свайп по словам.</li>
+      <li>Дальние кольца с редкими буквами собраны в клетки с фликом, чтобы не тянуться.</li>
+      <li>Над клавиатурой — подсказки слова.</li></ul>`,
+    swipe: () => `<ul>
+      <li><b>Тапай</b> по буквам: весь сектор — клавиша, промахнуться сложно.</li>
+      <li>Или веди палец по буквам слова, не отрывая: слово вставится целиком, варианты — над клавиатурой.</li>
+      <li>⌫ сразу после свайпа стирает всё слово.</li></ul>`,
+  };
+
+  function helpHTML() {
+    const order = [mode, ...MODES.filter(m => m !== mode)];
+    let h = `<p class="eyebrow">Справка</p><h2 id="sheet-title">Как печатать</h2>
+      <p>Держи телефон одной рукой и печатай большим пальцем. Сейчас: <b>${esc($('summary').textContent)}</b>. Раскладку, способ ввода, язык и руку меняет кнопка с ползунками вверху.</p>`;
+    for (const m of order) h += `<h3>${MODE_NAMES[m]}${m === mode ? ' — сейчас' : ''}</h3>${HOW[m]()}`;
+    h += `<h3>Везде</h3><ul>
+      <li>Удержание: е → ё, ь → ъ, . → …, - → —; в «Пульсе» ещё ? → !.</li>
+      <li>⇧ один раз — одна заглавная, дважды — капслок. После точки заглавная включается сама.</li>
+      <li>Двойной пробел — точка. Удерживай ⌫ — стирает подряд.</li>
+      <li>Пробел в «Миксе», «Луче» и «Пульсе»: смах наружу — «. », внутрь — «, », вдоль дуги к углу — стереть слово. В остальных — смах влево стирает слово.</li>
+      <li>Светлые кольца — зона, куда палец достаёт без напряжения. Бледные клавиши не нужны в текущей фразе, но работают.</li>
+      <li>Свет: кольцо на нажатой клавише подтверждает нажатие; тёплое — палец попал у края. Свечение из угла разгорается от темпа.</li></ul>
+      <h3>Раскладки</h3><ul>
+      <li><b>Слоги</b>: гласные в ближнем кольце (твёрдые слева, мягкие справа), частые согласные во втором, редкие в третьем; частые сочетания набираются коротким движением.</li>
+      <li><b>ЙЦУКЕН / QWERTY</b>: привычные ряды, свёрнутые дугой; нижний ряд ближе к пальцу.</li></ul>
+      <h3>Тест и замеры</h3><ul>
+      <li><b>Тест</b> сравнит способы ввода с твоей обычной клавиатурой за 5–8 минут; результат можно отправить автору.</li>
+      <li><b>Замеры</b> (кнопка со столбиками): путь пальца, касания и дальняя зона на знак, скорость, точность, кривая обучения, карта промахов.</li>
+      <li>Всё хранится только в этом браузере; набранный текст никуда не уходит.</li></ul>
+      <button class="big primary" data-act="close">Понятно</button>`;
+    return h;
+  }
+  $('help-open').onclick = () => openSheet(helpHTML(), null, true);
+
+  function welcomeHTML() {
+    const b = (v, l) => `<button class="big" type="button" data-act="side" data-v="${v}" aria-pressed="${side === v}">${l}</button>`;
+    return `<p class="eyebrow">Привет</p><h2 id="sheet-title">Дуга — клавиатура для одной руки</h2>
+      <p>Держи телефон одной рукой и печатай большим пальцем. Клавиши расходятся дугой вокруг пальца, чтобы ему реже приходилось тянуться.</p>
+      <h3>Какой рукой будешь печатать?</h3><div class="choice">${b('left', 'Левой')}${b('right', 'Правой')}</div>
+      <button class="big primary" type="button" data-act="test-start">Пройти тест · 5–8 минут</button>
+      <button class="big" type="button" data-act="welcome-try">Просто попробовать</button>
+      <p class="muted">Тест сравнит четыре способа ввода Дуги с твоей обычной клавиатурой. В конце можно отправить результат автору. Набранный текст никуда не уходит.</p>`;
+  }
+  acts.side = b => { setSide(b.dataset.v); pressOnly(b, 'side'); };
+  acts['welcome-try'] = () => { store.set('duga-welcome', '1'); closeSheet(); };
+
+  // ---------- guided test ----------
+  // Own keyboard first (baseline, and the phrases become familiar), then the four Дуга set-ups in a
+  // random order so getting used to the task does not favour one of them. Two short phrases each,
+  // then two quick ratings. The summary can be shared as text.
+  const TEST_INFO = {
+    system: { name: 'Обычная клавиатура' },
+    pulse: { name: 'Пульс', mode: 'pulse', variant: 'syl' },
+    flick: { name: 'Флик', mode: 'flick', variant: 'syl' },
+    ray: { name: 'Луч', mode: 'ray', variant: 'syl' },
+    qwerty: { name: 'ЙЦУКЕН со свайпом', mode: 'swipe', variant: 'qwerty' },
+  };
+  const testName = id => id === 'qwerty' && lang === 'en' ? 'QWERTY со свайпом' : TEST_INFO[id].name;
+  const STRAIN = { low: 'не устал', mid: 'немного устал', high: 'устал' };
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function startTest() {
+    store.set('duga-welcome', '1');
+    test = {
+      at: Date.now(), lang, side, order: ['system', ...shuffle(['pulse', 'flick', 'ray', 'qwerty'])],
+      si: 0, pi: 0, phrases: TEST_PHRASES[lang].slice(0, 2), res: {}, typing: false, comment: '',
+      before: { variant, mode, di },
+    };
+    test.order.forEach(id => { test.res[id] = { attempts: [], skipped: 0, rating: null, strain: null }; });
+    $('settings').hidden = true; $('gear').setAttribute('aria-expanded', 'false');
+    testIntro();
+  }
+  function testIntro() {
+    const id = test.order[test.si], n = test.order.length;
+    let h = `<p class="eyebrow">Тест · шаг ${test.si + 1} из ${n}</p><h2 id="sheet-title">${testName(id)}</h2>`;
+    if (id === 'system') {
+      h += `<p class="muted" id="t-prog"></p><p class="sys-target" id="t-phrase"></p>
+        <textarea id="t-sys" rows="2" autocomplete="off" autocapitalize="sentences" placeholder="Нажми сюда и набери фразу"></textarea>
+        <p>Сначала — твоя обычная клавиатура (Яндекс, Gboard, iPhone), чтобы было с чем сравнить. Нажми на поле и набери фразу как обычно, одной рукой.</p>
+        <button class="big" type="button" data-act="test-skipset">Пропустить этот шаг</button>`;
+    } else {
+      h += HOW[TEST_INFO[id].mode]() + `<p class="muted">Две короткие фразы, одной рукой. Ошибся — сотри ⌫. Если фраза никак не выходит, › рядом с ней пропустит её.</p>
+        <button class="big primary" type="button" data-act="test-go">Начать</button>
+        <button class="big" type="button" data-act="test-skipset">Пропустить этот способ</button>`;
+    }
+    h += '<button class="linkbtn" type="button" data-act="test-quit">Прервать тест</button>';
+    openSheet(h, id === 'system' ? mountSys : null, false, id === 'system');
+  }
+  // Own keyboard: time from the first keystroke to the finished phrase, and how much was typed in total
+  function mountSys(c) {
+    const f = c.querySelector('#t-sys');
+    const show = () => {
+      c.querySelector('#t-phrase').textContent = test.phrases[test.pi];
+      c.querySelector('#t-prog').textContent = `Фраза ${test.pi + 1} из ${test.phrases.length}`;
+    };
+    show();
+    let m = { t0: 0, prev: 0, inserted: 0 };
+    f.addEventListener('input', () => {
+      const v = f.value, phrase = test.phrases[test.pi];
+      if (!m.t0 && v) m.t0 = Date.now();
+      if (v.length > m.prev) m.inserted += v.length - m.prev;
+      m.prev = v.length;
+      if (norm(v) !== norm(phrase)) return;
+      const ms = Math.max(1, Date.now() - m.t0), n = phrase.length;
+      const a = { at: Date.now(), cfg: 'Системная клавиатура', lang, layout: 'system', mode: 'system', side: null, phrase, ms,
+        cpm: Math.round(n / (ms / 60000)), acc: Math.round(100 * n / Math.max(n, m.inserted)), tpc: null, mm: null, far: null, test: test.at };
+      attempts.push(a); saveJSON('duga-attempts', attempts, 1000);
+      test.res.system.attempts.push(a);
+      m = { t0: 0, prev: 0, inserted: 0 }; f.value = '';
+      test.pi++;
+      if (test.pi < test.phrases.length) show(); else { f.blur(); testRate(); }
+    });
+  }
+  function applySetup(v, m) {
+    variant = v; mode = m;
+    paintVariants(); paintModes(); buildRings(); layout(); warmSwipe();
+  }
+  acts['test-start'] = () => startTest();
+  acts['test-go'] = () => {
+    const info = TEST_INFO[test.order[test.si]];
+    test.typing = true; test.pi = 0; di = 0;
+    applySetup(info.variant, info.mode);
+    $('gear').hidden = true; $('test-open').hidden = true;
+    clearText(); render(); closeSheet();
+  };
+  function nextTestPhrase(done) {
+    if (!test || !test.typing) return;
+    if (!done) test.res[test.order[test.si]].skipped++;
+    test.pi++;
+    if (test.pi < test.phrases.length) { di = test.pi; clearText(); render(); return; }
+    test.typing = false; $('gear').hidden = false; $('test-open').hidden = false;
+    di = 0; clearText(); render();
+    testRate();
+  }
+  function testRate() {
+    const id = test.order[test.si], r = test.res[id];
+    const rate = [1, 2, 3, 4, 5].map(v => `<button class="big" type="button" data-act="rate" data-v="${v}" aria-pressed="${r.rating === v}">${v}</button>`).join('');
+    const strain = Object.entries(STRAIN).map(([v, l]) => `<button class="big" type="button" data-act="strain" data-v="${v}" aria-pressed="${r.strain === v}">${l[0].toUpperCase() + l.slice(1)}</button>`).join('');
+    openSheet(`<p class="eyebrow">Тест · шаг ${test.si + 1} из ${test.order.length}</p><h2 id="sheet-title">Как тебе «${testName(id)}»?</h2>
+      <h3>Удобство</h3><div class="rate">${rate}</div><div class="scale"><span>1 — неудобно</span><span>5 — очень удобно</span></div>
+      <h3>Большой палец</h3><div class="choice">${strain}</div>
+      <button class="big primary" type="button" data-act="test-next">${test.si + 1 < test.order.length ? 'Дальше' : 'К результатам'}</button>`);
+  }
+  acts.rate = b => { test.res[test.order[test.si]].rating = +b.dataset.v; pressOnly(b, 'rate'); };
+  acts.strain = b => { test.res[test.order[test.si]].strain = b.dataset.v; pressOnly(b, 'strain'); };
+  function testStep() { test.si++; test.pi = 0; if (test.si < test.order.length) testIntro(); else testSummary(); }
+  acts['test-next'] = testStep;
+  acts['test-skipset'] = () => { test.res[test.order[test.si]].skipped = test.phrases.length; test.typing = false; testStep(); };
+  function endTest() {
+    if (!test) return;
+    const b = test.before;
+    test = null;
+    $('gear').hidden = false; $('test-open').hidden = false;
+    applySetup(b.variant, b.mode); di = b.di;
+    clearText(); render(); closeSheet();
+  }
+  acts['test-quit'] = endTest;
+  acts['test-done'] = endTest;
+  function testRow(id) {
+    const r = test.res[id], A = r.attempts;
+    return { id, name: testName(id), n: A.length, cpm: avgOf(A, 'cpm'), acc: avgOf(A, 'acc'), mm: avgOf(A, 'mm'),
+      tpc: avgOf(A, 'tpc'), far: avgOf(A, 'far'), rating: r.rating, strain: r.strain, skipped: r.skipped };
+  }
+  const f0 = v => v == null ? '—' : String(Math.round(v)), f1 = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
+  function testSummary() {
+    const rows = test.order.map(testRow);
+    tests.push({ at: test.at, lang: test.lang, side: test.side, order: test.order, phrases: test.phrases, rows, comment: test.comment });
+    saveJSON('duga-tests', tests, 50);
+    const body = rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.n ? f0(r.cpm) : 'пропущено'}</td><td>${f0(r.acc)}</td><td>${f1(r.mm)}</td><td>${f0(r.far)}</td><td>${r.rating ? r.rating + '/5' : '—'}</td></tr>`).join('');
+    openSheet(`<p class="eyebrow">Тест пройден</p><h2 id="sheet-title">Спасибо! Вот что получилось</h2>
+      <div class="tbl-wrap"><table class="res"><thead><tr><th>Способ</th><th>зн/мин</th><th>Точн. %</th><th>Путь мм/зн</th><th>Дальн. %</th><th>Оценка</th></tr></thead><tbody>${body}</tbody></table></div>
+      <p class="muted">Путь пальца и дальняя зона — сколько тянулся палец; у обычной клавиатуры страница их измерить не может. Первые попытки на новой раскладке всегда медленнее — это нормально.</p>
+      <h3>Что понравилось или мешало? (по желанию)</h3>
+      <textarea id="t-comment" rows="3" placeholder="Пара слов своими словами"></textarea>
+      <button class="big primary" type="button" data-act="test-share">Отправить результат автору</button>
+      <button class="big" type="button" data-act="test-copy">Скопировать текст</button>
+      <p class="muted" id="t-note" aria-live="polite"></p>
+      <textarea id="t-fallback" rows="5" readonly hidden></textarea>
+      <button class="linkbtn" type="button" data-act="test-done">Закрыть и печатать дальше</button>`, c => {
+      c.querySelector('#t-comment').addEventListener('input', e => { test.comment = e.target.value; tests[tests.length - 1].comment = test.comment; saveJSON('duga-tests', tests, 50); });
+    });
+  }
+  function testText() {
+    const d = new Date(test.at), rows = test.order.map(testRow);
+    const lines = [`Дуга · тест · ${d.toLocaleDateString('ru-RU')} · ${test.side === 'left' ? 'левая' : 'правая'} рука · ${test.lang.toUpperCase()}`];
+    for (const r of rows) {
+      if (!r.n) { lines.push(`${r.name}: пропущено`); continue; }
+      let s = `${r.name}: ${f0(r.cpm)} зн/мин, точность ${f0(r.acc)}%`;
+      if (r.mm != null) s += `, путь ${f1(r.mm)} мм/зн, касаний ${f1(r.tpc)}/зн, дальняя зона ${f0(r.far)}%`;
+      if (r.rating) s += `, удобство ${r.rating}/5`;
+      if (r.strain) s += `, палец: ${STRAIN[r.strain]}`;
+      if (r.skipped) s += `, пропущено фраз: ${r.skipped}`;
+      lines.push(s);
+    }
+    lines.push('Порядок: ' + rows.map(r => r.name).join(' → '));
+    if (test.comment.trim()) lines.push('Комментарий: ' + test.comment.trim());
+    lines.push(`Экран: ${window.innerWidth}×${window.innerHeight}`);
+    return lines.join('\n');
+  }
+  function copyOut(text, done) {
+    const fb = () => {
+      const f = card.querySelector('#t-fallback'); f.hidden = false; f.value = text; f.focus(); f.select();
+      card.querySelector('#t-note').textContent = 'Скопируй текст ниже и отправь автору в сообщении.';
+    };
+    try { navigator.clipboard.writeText(text).then(() => { card.querySelector('#t-note').textContent = done; }, fb); } catch (e) { fb(); }
+  }
+  acts['test-share'] = () => {
+    const text = testText();
+    if (navigator.share) {
+      navigator.share({ title: 'Дуга — результат теста', text })
+        .then(() => { card.querySelector('#t-note').textContent = 'Отправлено. Спасибо!'; })
+        .catch(e => { if (!e || e.name !== 'AbortError') copyOut(text, 'Текст скопирован — вставь его в сообщение автору.'); });
+    } else copyOut(text, 'Текст скопирован — вставь его в сообщение автору.');
+  };
+  acts['test-copy'] = () => copyOut(testText(), 'Скопировано — вставь в сообщение автору.');
+  $('test-open').onclick = () => { if (test) testIntro(); else startTest(); };
+
   function setSide(s) {
     side = s; store.set('duga-side', s);
     document.querySelector('.app').classList.toggle('left', s === 'left');
@@ -1223,12 +1754,14 @@ details b { color: var(--fg); font-weight: 500; }
   $('light').onclick = () => setLight(!light);
   function paintModes() { for (const m of MODES) $('mode-' + m).setAttribute('aria-pressed', m === mode); }
   function setMode(m) {
+    const prevX = drill().x;
     mode = m; store.set('duga-mode', m);
-    lastSwipe = null;
+    keepPhrase(prevX); clearText();
     paintModes(); buildRings(); layout(); render(); warmSwipe();
   }
   for (const m of MODES) $('mode-' + m).onclick = () => setMode(m);
   function goDrill(step) {
+    if (test && test.typing) { if (step > 0) nextTestPhrase(false); return; } // › skips a test phrase
     const n = drills().length;
     di = Math.min(Math.max(di + step, 0), n - 1);
     clearText(); render();
@@ -1243,9 +1776,11 @@ details b { color: var(--fg); font-weight: 500; }
   $('reset').onclick = () => { clearText(); render(); };
 
   new ResizeObserver(() => layout()).observe(kbd);
+  window.addEventListener('resize', () => layout());
   paintModes();
   setSide(side); setLight(light);
-  window.DUGA.debug = { rings: () => rings, geo: () => geo, spot: w => { SPOT_W = w; } }; // for tests
+  window.DUGA.debug = { rings: () => rings, geo: () => geo, spot: w => { SPOT_W = w; }, pulse: pts => pulseResolve(pts), PH, test: () => test }; // for tests
   setLang(lang);
+  if (!store.get('duga-welcome')) openSheet(welcomeHTML());
 })();
 </script>
