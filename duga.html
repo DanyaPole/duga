@@ -188,11 +188,14 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .outwrap .out { flex: 1; min-width: 0; }
 .outwrap.has .out { padding-right: 84px; }
 .app.left .outwrap.has .out { padding-right: 2px; padding-left: 84px; }
+.outwrap.has.voiced .out { padding-right: 124px; }
+.app.left .outwrap.has.voiced .out { padding-right: 2px; padding-left: 124px; }
+.app.blind .stats, .app.blind .cands { display: none; }
 .outbtns { position: absolute; top: 0; right: 0; display: flex; gap: 6px; }
 .app.left .outbtns { right: auto; left: 0; }
 .outwrap:not(.has) .outbtns { display: none; }
 .outbtn {
-  width: 38px; height: 38px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  width: 36px; height: 36px; padding: 0; display: grid; place-items: center; cursor: pointer;
   border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
 }
 .outbtn[hidden], .out-toast[hidden] { display: none; }
@@ -403,6 +406,7 @@ details b { color: var(--fg); font-weight: 500; }
     <div class="phrase" id="phrase">
       <div class="head">
         <span class="lbl" id="dlbl"></span>
+        <button id="say" class="nav icon" type="button" aria-label="Прослушать фразу"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M3 8v4h3l4 3.5v-11L6 8H3z" fill="currentColor"/><path d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
         <button id="reset" class="nav icon" type="button" aria-label="Набрать заново">↺</button>
         <button id="prev" class="nav" type="button" aria-label="Предыдущее упражнение">‹</button>
         <button id="next" class="nav" type="button" aria-label="Следующее упражнение">›</button>
@@ -413,6 +417,7 @@ details b { color: var(--fg); font-weight: 500; }
       <div class="out" id="out" aria-live="polite"></div>
       <div class="outbtns">
         <span class="out-toast" id="out-toast" hidden role="status"></span>
+        <button id="say-text" class="outbtn" type="button" aria-label="Прослушать набранный текст" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 8v4h3l4 3.5v-11L6 8H3z" fill="currentColor"/><path d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
         <button id="copy-text" class="outbtn" type="button" aria-label="Скопировать текст">
           <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v7A1.5 1.5 0 0 0 5.5 14H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </button>
@@ -458,6 +463,14 @@ details b { color: var(--fg); font-weight: 500; }
         <button id="side-right" type="button" aria-pressed="true">Правая рука</button>
       </div>
     </div>
+    <h3>Звук и ввод вслепую</h3>
+    <div class="seg" role="group" aria-label="Звук">
+      <button id="snd-off" type="button" aria-pressed="true">Без звука</button>
+      <button id="snd-clicks" type="button" aria-pressed="false">Щелчки</button>
+      <button id="snd-voice" type="button" aria-pressed="false">Голос</button>
+    </div>
+    <div class="row"><button id="blind" class="btn" type="button" aria-pressed="false">Вслепую (Пульс)</button></div>
+    <p class="muted small"><b>Щелчки</b>: у каждого направления «Пульса» своя нота, поворот и «туда-обратно» звучат по-разному, пробел низкий, стирание нисходящее. <b>Голос</b>: называет введённую букву и читает слово после пробела. <b>Вслепую</b>: звезда крупнее, касание без движения в любом месте — пробел, звук включается сам. Нет звука — проверь переключатель на боку iPhone и громкость.</p>
     <h3>Вид</h3>
     <label class="size" for="size">Размер клавиатуры <input id="size" type="range" min="80" max="115" step="1" value="100"></label>
     <div class="row">
@@ -817,6 +830,7 @@ details b { color: var(--fg); font-weight: 500; }
   }
   // A tap: the letter whose label is nearest; the centre and anything outside the star is space
   function pulseTap(x, y) {
+    if (blindOn()) return { petal: -1, kind: 'space', v: ' ' }; // eyes-free: a tap anywhere is a space
     const d = Math.hypot(x - PH[0], y - PH[1]);
     if (d < 15 || d > PULSE_R + 10) return { petal: -1, kind: 'space', v: ' ' };
     let best = null, bd = 1e9;
@@ -880,7 +894,7 @@ details b { color: var(--fg); font-weight: 500; }
     k = Math.min(k, (cx - 6) / R);
     // short screens (iPhone SE, Safari or Telegram with their bars): the keyboard takes at most ~52% of the height
     const vh = window.innerHeight || 800;
-    k = Math.min(k, vh * 0.52 / (R + 4));
+    k = Math.min(k, vh * (blindOn() ? 0.58 : 0.52) / (R + 4));
     const outer = R * k;
     const H = Math.ceil(outer + 4);
     geo = { cx, cy: H + pad, k, W, H };
@@ -891,6 +905,92 @@ details b { color: var(--fg); font-weight: 500; }
     applyKbd();
     draw();
   }
+
+  // ---------- sound and eyes-free typing ----------
+  // clicks: every direction of «Пульс» has its own note (a pentatonic scale, so any sequence sounds fine),
+  // a turn or an out-and-back changes the rhythm; space is low, delete falls. voice: the letter name is
+  // spoken when it is typed, the word is read after a space. Both work without looking at the screen.
+  let sound = ['off', 'clicks', 'voice'].includes(store.get('duga-sound')) ? store.get('duga-sound') : 'off';
+  let blind = store.get('duga-blind') === 'on';
+  const blindOn = () => blind && mode === 'pulse';
+  let actx = null, lastRes = null, lastResAt = 0;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone(f, dur, at = 0, vol = 0.2, type = 'sine') {
+    const c = audio(); if (!c) return;
+    const t0 = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  const SCALE = [262, 294, 330, 392, 440, 523, 587, 659]; // C D E G A C D E, one note per petal
+  function soundLetter(res) {
+    if (res && res.petal >= 0) {
+      const f = SCALE[res.petal];
+      if (res.kind === 'c') tone(f, 0.09);
+      else if (res.kind === 'l') { tone(f, 0.07); tone(f * 1.5, 0.09, 0.07); }
+      else if (res.kind === 'r') { tone(f, 0.07); tone(f * 0.75, 0.09, 0.07); }
+      else { tone(f, 0.06); tone(f, 0.08, 0.08); }
+    } else tone(780, 0.05, 0, 0.12);
+  }
+  const NAMES = {
+    ru: { а: 'а', б: 'бэ', в: 'вэ', г: 'гэ', д: 'дэ', е: 'е', ё: 'ё', ж: 'жэ', з: 'зэ', и: 'и', й: 'и краткое', к: 'ка', л: 'эль', м: 'эм', н: 'эн', о: 'о', п: 'пэ', р: 'эр', с: 'эс', т: 'тэ', у: 'у', ф: 'эф', х: 'ха', ц: 'цэ', ч: 'че', ш: 'ша', щ: 'ща', ъ: 'твёрдый знак', ы: 'ы', ь: 'мягкий знак', э: 'э', ю: 'ю', я: 'я',
+      '.': 'точка', ',': 'запятая', '?': 'вопрос', '!': 'восклицание', ':': 'двоеточие', '-': 'тире', '—': 'тире', '…': 'многоточие' },
+    en: { '.': 'period', ',': 'comma', '?': 'question mark', '!': 'exclamation mark', ':': 'colon', '-': 'dash', '—': 'dash', "'": 'apostrophe', '@': 'at' },
+  };
+  function speak(t, rate = 1.4) {
+    if (!window.speechSynthesis || !t) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(t); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = rate;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  const sayLetter = c => speak(NAMES[lang][c.toLowerCase()] || c, 1.5);
+  // Called when the text grows or shrinks (see render): the sound says what just happened
+  function feedback(added, removed) {
+    if (sound === 'off') return;
+    if (removed) { tone(330, 0.07, 0, 0.16); tone(220, 0.1, 0.07, 0.16); return; }
+    const recent = lastRes && performance.now() - lastResAt < 300 ? lastRes : null; lastRes = null;
+    if (added.length > 1) { // a whole word at once: a swipe or a completion
+      if (sound === 'voice') speak(added.trim()); else { tone(523, 0.07); tone(784, 0.1, 0.07); }
+      return;
+    }
+    if (added === ' ') {
+      tone(131, 0.12, 0, 0.3);
+      if (sound === 'voice') { const w = text.trimEnd().match(/[\p{L}\p{N}]+$/u); if (w) setTimeout(() => speak(w[0], 1.2), 140); }
+      return;
+    }
+    if (sound === 'voice') { if (/\p{L}/u.test(added) || NAMES[lang][added]) sayLetter(added); else tone(660, 0.05); }
+    else soundLetter(recent);
+  }
+  // sound on first touch (browsers only start audio after a gesture), and a test sound when it is chosen
+  document.addEventListener('pointerdown', () => { if (sound !== 'off') audio(); }, { passive: true });
+  function paintSound() {
+    for (const m of ['off', 'clicks', 'voice']) $('snd-' + m).setAttribute('aria-pressed', m === sound);
+    $('outwrap').classList.toggle('voiced', sound !== 'off' || blind);
+    $('say-text').hidden = sound === 'off' && !blind;
+    $('blind').setAttribute('aria-pressed', blind);
+    document.querySelector('.app').classList.toggle('blind', blindOn());
+  }
+  function setSound(m) {
+    sound = m; store.set('duga-sound', m); paintSound();
+    if (m === 'clicks') { audio(); [0, 2, 4, 5].forEach((p, i) => tone(SCALE[p], 0.09, i * 0.1)); }
+    if (m === 'voice') { audio(); speak(lang === 'ru' ? 'Голос включён' : 'Voice is on', 1.1); }
+  }
+  for (const m of ['off', 'clicks', 'voice']) $('snd-' + m).onclick = () => setSound(m);
+  function setBlind(on) {
+    blind = on; store.set('duga-blind', on ? 'on' : 'off');
+    if (on) { if (sound === 'off') { sound = 'voice'; store.set('duga-sound', sound); } if (mode !== 'pulse') setMode('pulse'); openKbd(); }
+    paintSound(); layout(); render();
+    if (on) { audio(); speak(lang === 'ru' ? 'Режим вслепую. Касание без движения — пробел.' : 'Eyes-free mode. A tap without moving is a space.', 1.1); }
+  }
+  $('blind').onclick = () => setBlind(!blind);
+  $('say').onclick = () => speak(drill().x, 1.1);
+  $('say-text').onclick = () => { if (text.trim()) speak(text, 1.1); };
 
   // ---------- retractable keyboard ----------
   let autohide = store.get('duga-autohide') === 'on', kOpen = !autohide;
@@ -1041,6 +1141,7 @@ details b { color: var(--fg); font-weight: 500; }
       if (tg && tg.petal === p && tg.kind === kind) cls.push('g1');
       else if (hints && hints.has(v)) cls.push('g' + hints.get(v));
       if (!need.has(v) && !(tg && tg.petal === p)) cls.push('dim');
+      if (tut && tut.level === 3 && tut.help < 1) continue; // «Не глядя»: no letters, only sound
       const t = el('text', { x, y, class: cls.join(' ').trim(), 'font-size': SIZE[kind] * Math.max(k, .85) }, svg);
       t.textContent = up ? v.toUpperCase() : v;
     }
@@ -1065,8 +1166,8 @@ details b { color: var(--fg); font-weight: 500; }
   // ---------- text ----------
   function esc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
   function render() {
-    if (text.length > prevLen) { onTyped(text.length - prevLen); M.inserted += text.length - prevLen; inkStart = prevLen; }
-    else if (text.length < prevLen) inkStart = text.length;
+    if (text.length > prevLen) { onTyped(text.length - prevLen); M.inserted += text.length - prevLen; feedback(text.slice(prevLen), false); inkStart = prevLen; }
+    else if (text.length < prevLen) { inkStart = text.length; feedback('', true); }
     prevLen = text.length;
     const body = light && inkStart < text.length
       ? esc(text.slice(0, inkStart)) + '<span class="ink">' + esc(text.slice(inkStart)) + '</span>' : esc(text);
@@ -1479,8 +1580,9 @@ details b { color: var(--fg); font-weight: 500; }
     if (k.t === 'pulse') lightWedge(-1);
     switch (k.t) {
       case 'pulse': {
-        const c = charOut(st);
+        const c = charOut(st), res = pulseRes(st.pts);
         if (c === ' ') { insert(' '); lastSpace = Date.now(); break; }
+        lastRes = res; lastResAt = performance.now(); // so the sound can say which direction it was
         insert(c);
         if (!shiftLock) { shiftOnce = false; render(); }
         break;
@@ -1871,7 +1973,7 @@ details b { color: var(--fg); font-weight: 500; }
     return r;
   }
 
-  const LEVELS = ['Первые смахи', 'Мелкие буквы', 'Слова'];
+  const LEVELS = ['Первые смахи', 'Мелкие буквы', 'Слова', 'Не глядя'];
   function pulseSteps(level) {
     const P = PULSE[lang], d = p => dirWord(p * 45);
     const C = p => ({ say: `Смахни <b>${d(p)}</b> — получится «${P[p].c}».`, want: P[p].c, target: { petal: p, kind: 'c', v: P[p].c } });
@@ -1886,14 +1988,23 @@ details b { color: var(--fg); font-weight: 500; }
       T(0, 'l'), T(0, 'r'), T(2, 'l'), Bk(1),
       { say: `Смахни ${d(5)} к «${P[5].c}» и <b>задержи палец</b>, пока над ним не появится «${lang === 'ru' ? 'ё' : P[5].c}».`, want: lang === 'ru' ? 'ё' : P[5].c, target: { petal: 5, kind: 'c', v: P[5].c } },
     ];
+    if (level === 3) {
+      const ws = lang === 'ru' ? ['сон', 'мама', 'привет'] : ['sea', 'mama', 'hello'];
+      return ws.map((w, i) => ({ say: i === 0 ? `Буквы на звезде скрыты: слушай, а не смотри. Набери слово «<b>${w}</b>». Каждая буква отзывается звуком; пробел — касание в любом месте.` : `Набери слово «<b>${w}</b>», не глядя на звезду.`, word: w }));
+    }
     const words = lang === 'ru' ? ['сон', 'тесто', 'мама', 'привет'] : ['sea', 'tea', 'notes', 'hello'];
     return words.map(w => ({ say: `Набери слово «<b>${w}</b>». Если сбился — сотри ⌫, это нормально.`, word: w }));
   }
   function tutStart(level) {
     closeSheet(); closeSettings();
     const before = tut ? tut.before : { variant, mode, di };
-    tut = { level, steps: pulseSteps(level), i: 0, help: 0, misses: 0, seen: 0, lock: false, before, note: '', offer: false };
+    // the last level is typed by ear: sound and eyes-free mode are on for its duration only
+    const restore = tut && tut.restore ? tut.restore : { sound, blind };
+    tut = { level, steps: pulseSteps(level), i: 0, help: 0, misses: 0, seen: 0, lock: false, before, note: '', offer: false, restore };
     applySetup('syl', 'pulse');
+    if (level === 3) { if (sound === 'off') { sound = 'voice'; } blind = true; audio(); speak(lang === 'ru' ? 'Слушай. Сейчас без экрана.' : 'Listen. No screen now.', 1.2); }
+    else { sound = restore.sound; blind = restore.blind; }
+    paintSound(); layout();
     openKbd();
     $('phrase').hidden = true; $('coach').hidden = false;
     clearText(); render(); paintCoach();
@@ -1960,21 +2071,25 @@ details b { color: var(--fg); font-weight: 500; }
     const next = lv + 1 < LEVELS.length;
     openSheet(`<p class="eyebrow">Пульс · уровень ${lv + 1} из ${LEVELS.length}</p><h2 id="sheet-title">«${LEVELS[lv]}» — получилось!</h2>
       ${schedule(LEVELS.map((l, i) => ({ name: l, state: i <= lv ? 'done' : i === lv + 1 ? 'now' : '' })))}
-      <p>${next ? 'Удобно так? Можно повторить этот уровень ещё раз или идти дальше — как хочешь.' : 'Теперь ты знаешь весь «Пульс». Попробуй набрать что-нибудь своё или пройди тест.'}</p>
-      ${next ? `<button class="big primary" type="button" data-act="tut-next">Дальше: «${LEVELS[lv + 1]}»</button>` : '<button class="big primary" type="button" data-act="tut-free">Печатать свободно</button><button class="big" type="button" data-act="test-start">Пройти тест</button>'}
+      <p>${next ? 'Удобно так? Можно повторить этот уровень ещё раз или идти дальше — как хочешь.' : (lv === 3 ? 'Ты набрал слова на слух. Эти настройки можно оставить включёнными или вернуть как было.' : 'Теперь ты знаешь весь «Пульс». Попробуй набрать что-нибудь своё или пройди тест.')}</p>
+      ${next ? `<button class="big primary" type="button" data-act="tut-next">Дальше: «${LEVELS[lv + 1]}»</button>` : (lv === 3 ? '<button class="big primary" type="button" data-act="tut-keep">Оставить звук и режим «вслепую»</button><button class="big" type="button" data-act="tut-free">Вернуть как было</button>' : '<button class="big primary" type="button" data-act="tut-free">Печатать свободно</button>') + '<button class="big" type="button" data-act="test-start">Пройти тест</button>'}
       <button class="big" type="button" data-act="tut-again">Ещё раз «${LEVELS[lv]}»</button>
       <button class="linkbtn" type="button" data-act="tut-end">Закончить обучение</button>`);
   }
   acts['tut-next'] = () => tutStart(tut.level + 1);
   acts['tut-again'] = () => tutStart(tut.level);
   acts['tut-free'] = () => tutEnd(true);
+  acts['tut-keep'] = () => { keepEyesFree = true; tutEnd(true); };
   acts['tut-end'] = () => tutEnd(true);
   acts['tut-level'] = b => { tut = null; tutStart(Number(b.dataset.v)); };
   // stay in «Пульс» after learning it; skipping restores what was there before
+  let keepEyesFree = false;
   function tutEnd(keep) {
     if (!tut) { closeSheet(); return; }
-    const b = tut.before;
+    const b = tut.before, rs = tut.restore;
     tut = null;
+    if (rs && !keepEyesFree) { sound = rs.sound; blind = rs.blind; }
+    keepEyesFree = false; store.set('duga-sound', sound); store.set('duga-blind', blind ? 'on' : 'off'); paintSound(); layout();
     $('coach').hidden = true; $('phrase').hidden = false;
     if (!keep) applySetup(b.variant, b.mode);
     di = keep ? 0 : b.di;
@@ -2071,12 +2186,12 @@ details b { color: var(--fg); font-weight: 500; }
   // the learning menu: levels by depth, start anywhere
   function learnHTML() {
     const done = Number(store.get('duga-tut')) || 0;
-    const lv = (i, mins) => `<button class="opt" type="button" data-act="tut-level" data-v="${i}" aria-pressed="false"><b>${i < done ? '✓ ' : ''}Пульс ${i + 1}. ${LEVELS[i]}</b><span>${['прямые смахи и пробел', 'повороты, «туда и обратно», удержание', 'целые слова'][i]} · ${mins}</span></button>`;
+    const lv = (i, mins) => `<button class="opt" type="button" data-act="tut-level" data-v="${i}" aria-pressed="false"><b>${i < done ? '✓ ' : ''}Пульс ${i + 1}. ${LEVELS[i]}</b><span>${['прямые смахи и пробел', 'повороты, «туда и обратно», удержание', 'целые слова', 'буквы скрыты, ты слушаешь звук и голос'][i]} · ${mins}</span></button>`;
     return `<p class="eyebrow">Обучение</p><h2 id="sheet-title">С чего начнём?</h2>
       <p class="muted">Можно начать с любого пункта. Начинать с первого — нормально в любом возрасте.</p>
       <div class="opts">
         <button class="opt" type="button" data-act="ov-open" aria-pressed="false"><b>Чем отличаются способы</b><span>картинки, плюсы и минусы · 2 минуты чтения</span></button>
-        ${lv(0, 'около минуты')}${lv(1, '2 минуты')}${lv(2, '2 минуты')}
+        ${lv(0, 'около минуты')}${lv(1, '2 минуты')}${lv(2, '2 минуты')}${lv(3, 'ввод на слух, 2 минуты')}
         <button class="opt" type="button" data-act="test-start" aria-pressed="false"><b>Пройти тест</b><span>сравнить способы со своей клавиатурой · 5–8 минут</span></button>
       </div>
       <button class="linkbtn" type="button" data-act="close">Закрыть</button>`;
