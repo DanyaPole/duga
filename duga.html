@@ -58,6 +58,47 @@ h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .summary { font-size: 12px; color: var(--muted); margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .settings { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
 .settings[hidden] { display: none; }
+/* measurements report: full-screen sheet over the keyboard */
+.report {
+  position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.report[hidden] { display: none; }
+.report-in {
+  max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.report-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.report h2 { font-size: 20px; font-weight: 600; margin: 0; }
+.report h3 { font-size: 15px; font-weight: 600; margin: 10px 0 0; }
+.rnote { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.45; }
+.rnote b { color: var(--fg); font-weight: 500; }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.cmp { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { padding: 7px 7px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cmp th:first-child, .cmp td:first-child { text-align: left; white-space: normal; min-width: 96px; }
+.cmp th { white-space: normal; line-height: 1.25; vertical-align: bottom; }
+.cmp th { font-weight: 500; color: var(--muted); font-size: 12px; background: var(--panel); }
+.cmp tr:last-child td { border-bottom: 0; }
+.cmp td.best { color: var(--accent); font-weight: 600; }
+.cmp tr.cur td:first-child { font-weight: 600; }
+.cmp .empty { text-align: left; color: var(--muted); }
+.curve svg { display: block; width: 100%; height: auto; }
+.curve .axis { stroke: var(--line); stroke-width: 1; }
+.curve .lbl { fill: var(--muted); font: 11px var(--mono); }
+.curve .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.curve .dot { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.sys-target { font-size: 16px; margin: 0; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+#sys-field, .copy-fallback {
+  font: 16px var(--ui); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; resize: vertical;
+}
+.copy-fallback { font: 12px var(--mono); }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.chk input { accent-color: var(--accent); margin-top: 3px; }
+.report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.kbd .miss { fill: var(--bad); opacity: .35; pointer-events: none; }
 .btn.icon { padding: 5px 7px; line-height: 0; color: var(--fg); }
 .btn.icon[aria-expanded="true"] { background: var(--zone); border-color: var(--accent); }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -178,6 +219,9 @@ details b { color: var(--fg); font-weight: 500; }
       <h1>Дуга</h1>
       <span class="summary" id="summary"></span>
       <button id="reset" class="btn" type="button">Заново</button>
+      <button id="report-open" class="btn icon" type="button" aria-label="Замеры" aria-controls="report">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
       <button id="gear" class="btn icon" type="button" aria-expanded="false" aria-controls="settings" aria-label="Настройки">
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="5" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="13" cy="10" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="15" r="2" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/></svg>
       </button>
@@ -215,6 +259,7 @@ details b { color: var(--fg); font-weight: 500; }
       <ul>
         <li><b>Слоги</b>: все гласные в ближнем кольце, твёрдые слева, мягкие справа. Частые согласные во втором кольце, редкие в третьем. Согласные стоят так, чтобы частые слоги и сочетания (ст, но, ко, ра, пр) набирались коротким движением.</li>
         <li><b>ЙЦУКЕН / QWERTY</b>: ряды обычной клавиатуры, свёрнутые в дуги. Нижний ряд ближе к углу, верхний дальше. Знакомо сразу, зато частые е, н, к далеко.</li>
+        <li><b>Замеры</b> (кнопка со столбиками вверху): набери фразу упражнения до конца, и попытка запишется. Видно путь пальца и касания на знак, долю дальней зоны, скорость и точность для каждого набора раскладка · режим · рука, кривую обучения и карту промахов. Там же можно набрать ту же фразу своей обычной клавиатурой для сравнения. Данные хранятся только в этом браузере.</li>
         <li><b>Левая / Правая</b>: под какой большой палец зеркалить дугу.</li>
         <li><b>Свет</b>: кольцо на нажатой клавише подтверждает, какая сработала; тёплое кольцо значит, что палец попал у края клавиши. Свечение из угла разгорается от темпа: холодное на медленном наборе, тёплое на быстром. Новые буквы в тексте появляются цветом и «высыхают» за секунду.</li>
         <li>Бледные клавиши не нужны в текущем упражнении, но работают.</li>
@@ -241,6 +286,38 @@ details b { color: var(--fg); font-weight: 500; }
   </div>
 </div>
 <div class="bubble" id="bubble" hidden></div>
+
+<section class="report" id="report" hidden aria-label="Замеры">
+  <div class="report-in">
+    <div class="report-head">
+      <h2>Замеры</h2>
+      <button id="report-close" class="btn" type="button">Готово</button>
+    </div>
+    <p class="rnote">Попытка = фраза из упражнения, набранная до конца. Сравниваются только попытки одной и той же фразы: <b id="r-phrase"></b>. В каждой строке — среднее за последние 5 попыток. Лучшее значение в столбце выделено.</p>
+    <div class="tbl-wrap"><table class="cmp" id="cmp"></table></div>
+    <p class="rnote">Касаний на знак и путь пальца меньше — палец работает меньше. Дальняя зона — доля касаний за двумя удобными кольцами. Миллиметры примерные: для сравнения режимов на одном телефоне, не для точной длины.</p>
+
+    <h3 id="curve-title">Скорость по попыткам</h3>
+    <div id="curve" class="curve"></div>
+
+    <h3>Обычная клавиатура</h3>
+    <p class="rnote">Набери ту же фразу своей клавиатурой (Яндекс, Gboard, iPhone), чтобы сравнить скорость и точность. Путь пальца у системной клавиатуры страница измерить не может.</p>
+    <p class="sys-target" id="sys-phrase"></p>
+    <textarea id="sys-field" rows="2" autocomplete="off" spellcheck="false" placeholder="Набери фразу здесь"></textarea>
+    <p class="rnote" id="sys-res"></p>
+
+    <h3>Промахи</h3>
+    <label class="chk" for="heat"><input type="checkbox" id="heat"> Показать на клавиатуре, куда попадал палец, когда букву тут же стирали</label>
+    <p class="rnote" id="heat-count"></p>
+
+    <div class="report-actions">
+      <button id="copy-data" class="btn" type="button">Скопировать данные (JSON)</button>
+      <button id="clear-data" class="btn" type="button">Очистить замеры</button>
+    </div>
+    <p class="rnote" id="data-note"></p>
+    <textarea id="copy-fallback" class="copy-fallback" rows="4" readonly hidden></textarea>
+  </div>
+</section>
 
 <script src="swipe.js"></script>
 <script>
@@ -567,6 +644,10 @@ details b { color: var(--fg); font-weight: 500; }
         h.textContent = alt[key.v];
       }
     }));
+    if (heatOn) { // miss map: where the finger landed on letters that were erased right away
+      const g = geomKey(), rr = 6 * Math.max(k, .8);
+      for (const m of misses) if (m.g === g) el('circle', { cx: mx(geo.cx + m.x * k), cy: geo.cy - m.y * k, r: rr, class: 'miss' }, svg);
+    }
   }
 
   function hit(clientX, clientY) {
@@ -587,7 +668,7 @@ details b { color: var(--fg); font-weight: 500; }
   // ---------- text ----------
   function esc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
   function render() {
-    if (text.length > prevLen) { onTyped(text.length - prevLen); inkStart = prevLen; }
+    if (text.length > prevLen) { onTyped(text.length - prevLen); M.inserted += text.length - prevLen; inkStart = prevLen; }
     else if (text.length < prevLen) inkStart = text.length;
     prevLen = text.length;
     const body = light && inkStart < text.length
@@ -600,6 +681,7 @@ details b { color: var(--fg); font-weight: 500; }
     prevBtn.disabled = di === 0;
     nextBtn.disabled = di === all.length - 1;
     nextBtn.classList.toggle('go', text.trimEnd() === p && !nextBtn.disabled);
+    if (!recorded && t0 && text.trimEnd() === p) { recorded = true; recordAttempt(p); }
     let html = '';
     for (let i = 0; i < p.length; i++) {
       const c = esc(p[i]);
@@ -617,11 +699,16 @@ details b { color: var(--fg); font-weight: 500; }
   function stats() {
     const mins = t0 ? (Date.now() - t0) / 60000 : 0;
     const cpm = mins > 0.03 ? Math.round(text.length / mins) : 0;
-    const done = text.trimEnd() === drill().x;
+    const done = text.trimEnd() === drill().x, f = liveFigures(text.length);
     statsEl.innerHTML = `<span><b>${cpm || '—'}</b> зн/мин</span><span><b>${fixes}</b> исправл.</span>` +
-      (done ? '<span><b>фраза готова</b></span>' : '');
+      (text ? `<span><b>${f.tpc.toFixed(2)}</b> касан./знак</span><span><b>${f.mm.toFixed(1)}</b> мм/знак</span>` +
+        `<span><b>${Math.round(f.far)}%</b> дальн. зона</span>` : '') +
+      (done ? '<span><b>фраза готова</b> · в «Замерах»</span>' : '');
   }
-  function clearText() { text = ''; t0 = 0; fixes = 0; shiftOnce = false; shiftLock = false; lastSwipe = null; }
+  function clearText() {
+    text = ''; t0 = 0; fixes = 0; shiftOnce = false; shiftLock = false; lastSwipe = null;
+    M = newMetrics(); recorded = false;
+  }
   function insert(s) {
     if (!t0) t0 = Date.now();
     lastSwipe = null;
@@ -633,12 +720,49 @@ details b { color: var(--fg); font-weight: 500; }
       text = text.slice(0, lastSwipe.start); lastSwipe = null; fixes++; render(); return;
     }
     lastSwipe = null;
+    const t = M.taps[M.taps.length - 1];
+    if (t && t.i === text.length - 1) { M.taps.pop(); saveMiss(t); } // a tapped letter erased at once = a miss
     text = text.slice(0, -1); fixes++; render();
   }
   function delWord() {
     if (!text) return;
     lastSwipe = null;
     text = text.replace(/\s+$/, '').replace(/[^\s]+$/, ''); fixes++; render();
+  }
+
+  // ---------- measurements ----------
+  // One attempt = one drill phrase typed to the end. Measured on the keyboard itself:
+  // touches per character, finger travel (on screen and between touches), share of touches outside
+  // the two comfort rings, speed and accuracy (typed characters vs. needed ones).
+  const MM_PER_PX = 0.16; // ≈ size of a CSS pixel on a phone screen; good for comparing modes on one phone
+  const FAR_R = BANDS[ZONE_RINGS - 1][1]; // beyond the comfort rings
+  const newMetrics = () => ({ touches: 0, far: 0, pathPx: 0, inserted: 0, lastUp: null, taps: [] });
+  let M = newMetrics(), recorded = false;
+  const loadJSON = (k, d) => { try { return JSON.parse(store.get(k)) || d; } catch (e) { return d; } };
+  const attempts = loadJSON('duga-attempts', []), misses = loadJSON('duga-misses', []);
+  const saveJSON = (k, v, cap) => { if (v.length > cap) v.splice(0, v.length - cap); store.set(k, JSON.stringify(v)); };
+  const cfgName = () => [VARIANTS[variant].name[lang], MODE_NAMES[mode], side === 'left' ? 'левая' : 'правая'].join(' · ');
+  const geomKey = () => variant + '/' + lang + '/' + mode;
+  function liveFigures(n) {
+    return {
+      mm: n ? M.pathPx * MM_PER_PX / n : 0,
+      far: M.touches ? 100 * M.far / M.touches : 0,
+      tpc: n ? M.touches / n : 0,
+    };
+  }
+  function recordAttempt(phrase) {
+    const ms = Date.now() - t0, n = phrase.length, f = liveFigures(n);
+    attempts.push({
+      at: Date.now(), cfg: cfgName(), lang, layout: variant, mode, side, phrase, ms,
+      cpm: Math.round(n / (ms / 60000)), acc: Math.round(100 * n / Math.max(n, M.inserted)),
+      tpc: +f.tpc.toFixed(2), mm: +f.mm.toFixed(1), far: Math.round(f.far),
+    });
+    saveJSON('duga-attempts', attempts, 1000);
+    if (!$('report').hidden) paintReport();
+  }
+  function saveMiss(t) {
+    misses.push({ g: geomKey(), x: Math.round(t.x), y: Math.round(t.y) });
+    saveJSON('duga-misses', misses, 3000);
   }
 
   // ---------- swipe typing ----------
@@ -828,6 +952,10 @@ details b { color: var(--fg); font-weight: 500; }
     const st = { key: h.key, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, long: false, timer: 0,
       pts: toBase(e.clientX, e.clientY), len: 0, swipe: false };
     st.p0 = st.pts.slice(); st.x1 = st.p0[0]; st.y1 = st.p0[1]; // start and current finger position, base units
+    // measurements: every touch, its reach, and the flight from where the finger last lifted
+    M.touches++;
+    if (Math.hypot(st.p0[0], st.p0[1]) > FAR_R) M.far++;
+    if (M.lastUp) M.pathPx += Math.hypot(e.clientX - M.lastUp[0], e.clientY - M.lastUp[1]);
     touches.set(e.pointerId, st);
     h.key.path.classList.add('down');
     buzz();
@@ -849,6 +977,7 @@ details b { color: var(--fg); font-weight: 500; }
   svg.addEventListener('pointermove', e => {
     const st = touches.get(e.pointerId);
     if (!st) return;
+    M.pathPx += Math.hypot(e.clientX - st.x, e.clientY - st.y);
     st.x = e.clientX; st.y = e.clientY;
     const moved = Math.hypot(st.x - st.x0, st.y - st.y0);
     if (st.key.t === 'grp') {
@@ -892,6 +1021,7 @@ details b { color: var(--fg); font-weight: 500; }
     const st = touches.get(e.pointerId);
     if (!st) return;
     touches.delete(e.pointerId);
+    M.lastUp = [st.x, st.y];
     clearTimeout(st.timer);
     if (st.key.t === 'bksp') clearTimeout(repeatTimer);
     const k = st.key;
@@ -905,6 +1035,7 @@ details b { color: var(--fg); font-weight: 500; }
       case 'ch': {
         if (k.t === 'grp') [st.x1, st.y1] = toBase(st.x, st.y);
         insert(charOut(st));
+        M.taps.push({ i: text.length - 1, x: st.p0[0], y: st.p0[1] });
         if (!shiftLock) { shiftOnce = false; render(); }
         break;
       }
@@ -969,6 +1100,111 @@ details b { color: var(--fg); font-weight: 500; }
     const s = $('settings'); s.hidden = !s.hidden;
     $('gear').setAttribute('aria-expanded', !s.hidden);
   };
+  // ---------- measurements report ----------
+  let heatOn = store.get('duga-heat') === 'on';
+  const avgOf = (list, k) => { const v = list.map(a => a[k]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+  const COLS = [ // key, header, better, format — thumb load first, it is the main goal
+    ['mm', 'Путь мм/зн', 'min', v => v.toFixed(1)],
+    ['tpc', 'Касан./зн', 'min', v => v.toFixed(2)],
+    ['far', 'Дальн. %', 'min', v => Math.round(v)],
+    ['cpm', 'зн/мин', 'max', v => Math.round(v)],
+    ['acc', 'Точн. %', 'max', v => Math.round(v)],
+    ['n', 'Попыт.', null, v => v],
+  ];
+  function paintReport() {
+    const phrase = drill().x, cur = cfgName();
+    $('r-phrase').textContent = '«' + phrase + '»';
+    $('sys-phrase').textContent = phrase;
+    const groups = new Map();
+    for (const a of attempts) if (a.phrase === phrase) (groups.get(a.cfg) || groups.set(a.cfg, []).get(a.cfg)).push(a);
+    const rows = [...groups].map(([cfg, list]) => {
+      const last = list.slice(-5), r = { cfg, n: list.length };
+      for (const [k] of COLS) if (k !== 'n') r[k] = avgOf(last, k);
+      return r;
+    }).sort((a, b) => (a.mm ?? 1e9) - (b.mm ?? 1e9));
+    const best = {};
+    if (rows.length > 1) for (const [k, , dir] of COLS) {
+      const v = rows.map(r => r[k]).filter(x => x != null);
+      if (dir && v.length > 1) best[k] = dir === 'max' ? Math.max(...v) : Math.min(...v);
+    }
+    let html = '<thead><tr><th scope="col">Набор</th>' + COLS.map(c => `<th scope="col">${c[1]}</th>`).join('') + '</tr></thead><tbody>';
+    if (!rows.length) html += `<tr><td class="empty" colspan="${COLS.length + 1}">Пока нет попыток с этой фразой. Набери её до конца — результат появится здесь.</td></tr>`;
+    for (const r of rows) {
+      html += `<tr${r.cfg === cur ? ' class="cur"' : ''}><td>${esc(r.cfg)}</td>` + COLS.map(([k, , , fmt]) =>
+        `<td${best[k] != null && r[k] === best[k] ? ' class="best"' : ''}>${r[k] == null ? '—' : fmt(r[k])}</td>`).join('') + '</tr>';
+    }
+    $('cmp').innerHTML = html + '</tbody>';
+    paintCurve(attempts.filter(a => a.phrase === phrase && a.cfg === cur), cur);
+    const n = misses.filter(m => m.g === geomKey()).length;
+    $('heat-count').textContent = `Промахов записано для текущей раскладки и режима: ${n}.`;
+    $('heat').checked = heatOn;
+  }
+  // Single series: speed per attempt for the current set-up on this phrase
+  function paintCurve(list, cfg) {
+    $('curve-title').textContent = 'Скорость по попыткам — ' + cfg;
+    const box = $('curve');
+    if (list.length < 2) {
+      box.innerHTML = '<p class="rnote">Нужно хотя бы две попытки этим набором, чтобы увидеть, растёт ли скорость.</p>';
+      return;
+    }
+    const W = 520, H = 160, L = 40, R = 14, T = 12, B = 26;
+    const max = Math.max(...list.map(a => a.cpm));
+    const step = [10, 20, 25, 50, 100, 200, 250, 500].find(s => s * 3 >= max) || 1000, top = step * 3;
+    const x = i => L + (list.length === 1 ? 0 : i * (W - L - R) / (list.length - 1));
+    const y = v => T + (H - T - B) * (1 - v / top);
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Скорость по попыткам, знаков в минуту">`;
+    for (let v = 0; v <= top; v += step) s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="lbl" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    s += `<polyline class="ln" points="${list.map((a, i) => `${x(i)},${y(a.cpm)}`).join(' ')}"/>`;
+    list.forEach((a, i) => { s += `<circle class="dot" cx="${x(i)}" cy="${y(a.cpm)}" r="${i === list.length - 1 ? 5 : 4}"><title>Попытка ${i + 1}: ${a.cpm} зн/мин, точность ${a.acc}%</title></circle>`; });
+    s += `<text class="lbl" x="${L}" y="${H - 6}">1</text><text class="lbl" x="${W - R}" y="${H - 6}" text-anchor="end">попытка ${list.length}</text>`;
+    const last = list[list.length - 1];
+    s += `<text class="lbl" x="${x(list.length - 1) - 8}" y="${y(last.cpm) - 10}" text-anchor="end">${last.cpm} зн/мин</text></svg>`;
+    box.innerHTML = s;
+  }
+  // The viewer's own system keyboard on the same phrase: speed and accuracy only
+  const sys = { t0: 0, prev: 0, inserted: 0, done: false };
+  $('sys-field').addEventListener('focus', () => {
+    if (sys.done) { $('sys-field').value = ''; Object.assign(sys, { t0: 0, prev: 0, inserted: 0, done: false }); $('sys-res').textContent = ''; }
+  });
+  $('sys-field').addEventListener('input', () => {
+    const v = $('sys-field').value, phrase = drill().x;
+    if (sys.done) return;
+    if (!sys.t0 && v) sys.t0 = Date.now();
+    if (v.length > sys.prev) sys.inserted += v.length - sys.prev;
+    sys.prev = v.length;
+    if (v.trim() === phrase) {
+      sys.done = true;
+      const ms = Date.now() - sys.t0, n = phrase.length;
+      const a = { at: Date.now(), cfg: 'Системная клавиатура', lang, layout: 'system', mode: 'system', side: null, phrase, ms,
+        cpm: Math.round(n / (ms / 60000)), acc: Math.round(100 * n / Math.max(n, sys.inserted)), tpc: null, mm: null, far: null };
+      attempts.push(a); saveJSON('duga-attempts', attempts, 1000);
+      $('sys-res').textContent = `Записано: ${a.cpm} зн/мин, точность ${a.acc}%. Нажми на поле ещё раз для новой попытки.`;
+      $('sys-field').blur();
+      paintReport();
+    }
+  });
+  $('heat').addEventListener('change', () => { heatOn = $('heat').checked; store.set('duga-heat', heatOn ? 'on' : 'off'); draw(); });
+  $('copy-data').onclick = () => {
+    const data = JSON.stringify({ app: 'Дуга', exportedAt: new Date().toISOString(), attempts, misses }, null, 1);
+    const note = `${attempts.length} попыток, ${misses.length} промахов.`;
+    const fallback = () => {
+      const f = $('copy-fallback'); f.hidden = false; f.value = data; f.focus(); f.select();
+      $('data-note').textContent = 'Не удалось скопировать автоматически: данные выделены ниже, скопируй их вручную. ' + note;
+    };
+    try { navigator.clipboard.writeText(data).then(() => { $('data-note').textContent = 'Скопировано: ' + note; }, fallback); }
+    catch (e) { fallback(); }
+  };
+  let clearArmed = false;
+  $('clear-data').onclick = () => {
+    if (!clearArmed) { clearArmed = true; $('clear-data').textContent = 'Точно очистить? Нажми ещё раз'; return; }
+    clearArmed = false; $('clear-data').textContent = 'Очистить замеры';
+    attempts.length = 0; misses.length = 0;
+    saveJSON('duga-attempts', attempts, 1000); saveJSON('duga-misses', misses, 3000);
+    $('data-note').textContent = 'Замеры очищены.';
+    paintReport(); draw();
+  };
+  $('report-open').onclick = () => { $('report').hidden = false; paintReport(); };
+  $('report-close').onclick = () => { $('report').hidden = true; clearArmed = false; $('clear-data').textContent = 'Очистить замеры'; };
   function setSide(s) {
     side = s; store.set('duga-side', s);
     document.querySelector('.app').classList.toggle('left', s === 'left');
