@@ -551,6 +551,70 @@
     onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
   }
 
+  function voiceControls(s) {
+    var vr = row(), st = row(); s.appendChild(vr); s.appendChild(st);
+    function paintVoices() {
+      vr.innerHTML = ''; var vs = voices(true), cur = store.get('voice', '') || (vs[0] && vs[0].name);
+      if (!vs.length) vr.appendChild(h('p', 'Русский голос не найден. На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский.', 'muted'));
+      if (vs.length > 1) vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, ''), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
+    }
+    function paintRate() {
+      st.innerHTML = '';
+      [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]].forEach(function (x) { st.appendChild(btn((rate() === x[1] ? '✓ ' : '') + x[0], rate() === x[1] ? 'main' : '', function () { store.set('rate', x[1]); paintRate(); say('Так я говорю.', true); })); });
+    }
+    paintVoices(); paintRate();
+    if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function () { if (vr.isConnected) paintVoices(); };
+  }
+  function handButtons() {
+    var r = row('pair');
+    [['Правая', false], ['Левая', true]].forEach(function (x) {
+      r.appendChild(btn((left === x[1] ? '✓ ' : '') + x[0], left === x[1] ? 'main' : '', function () {
+        left = x[1]; store.set('hand', left ? 'left' : 'right'); layout(true);
+        var n = r.children; for (var i = 0; i < n.length; i++) { var on = i === (left ? 1 : 0); n[i].className = on ? 'main' : ''; n[i].textContent = (on ? '✓ ' : '') + (i ? 'Левая' : 'Правая'); }
+      }));
+    });
+    return r;
+  }
+
+  // the first visit: a calm page before the keyboard — the hand, the voice, a name; then a lesson or straight to speaking
+  function welcomeScreen() {
+    document.body.classList.add('welcome');
+    var s = begin(); s.scrollTop = 0;
+    var top = h('div', '', 'hello'), img = document.createElement('img'); img.src = '../icon.png'; img.alt = '';
+    top.appendChild(img); var tt = document.createElement('div'); tt.appendChild(h('h1', 'Пульк'));
+    tt.appendChild(h('p', 'Печатай одним пальцем — телефон скажет вслух.', 'note')); top.appendChild(tt);
+    s.appendChild(top);
+
+    var c1 = h('div', '', 'card'); s.appendChild(c1);
+    c1.appendChild(h('h2', '1. Какой рукой?'));
+    c1.appendChild(h('p', 'Клавиатура встанет под большой палец этой руки.', 'note'));
+    c1.appendChild(handButtons());
+
+    var c2 = h('div', '', 'card'); s.appendChild(c2);
+    c2.appendChild(h('h2', '2. Голос'));
+    c2.appendChild(h('p', 'Включите звук и послушайте. Так телефон будет говорить ваши слова.', 'note'));
+    c2.appendChild(btn('🔊 Послушать', 'main wide', function () { say('Привет! Это мой голос. Я скажу всё, что ты напечатаешь.', true); }));
+    voiceControls(c2);
+
+    var c3 = h('div', '', 'card'); s.appendChild(c3);
+    c3.appendChild(h('h2', '3. Как тебя зовут?'));
+    c3.appendChild(h('p', 'Можно пропустить. Из имени получится карточка «Про меня» — её можно показать незнакомым.', 'note'));
+    var name = '';
+    c3.appendChild(field('', 'Имя', function (v) { name = v.trim(); }));
+
+    function start(where) {
+      if (name && !aboutMe()) store.set('about', 'Меня зовут ' + name + '. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.');
+      store.set('welcomed', true); document.body.classList.remove('welcome');
+      document.querySelector('#tabs button[data-tab="' + where + '"]').click();
+    }
+    s.appendChild(btn('Начать с урока — 3 минуты', 'main wide', function () { start('lesson'); }));
+    s.appendChild(btn('Сразу говорить', 'wide', function () { start('speak'); }));
+    s.appendChild(btn('Я взрослый рядом с ребёнком: как помочь', 'wide quiet', function () { parentsScreen(welcomeScreen); }));
+    var tip = 'Всё это можно поменять потом: «Говорить» → «Для взрослого». Набранное остаётся на телефоне.';
+    if (navigator.standalone === false) tip += ' Чтобы открывать как приложение: «Поделиться» → «На экран „Домой“».';
+    s.appendChild(h('p', tip, 'muted'));
+  }
+
   // the adult's screen: a choice to offer (the quickest way to a first conversation), «Про меня», the voice
   function adultScreen(choiceFirst) {
     var s = begin(); s.scrollTop = 0;
@@ -580,28 +644,15 @@
     s.appendChild(h('p', 'То, что ребёнок покажет и скажет незнакомым одним касанием.', 'note'));
     s.appendChild(field(aboutMe(), 'Меня зовут Миша. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.', function (v) { store.set('about', v.trim()); }, true));
     s.appendChild(h('h2', 'Голос'));
-    var vr = row(); s.appendChild(vr);
-    function paintVoices() {
-      vr.innerHTML = ''; var vs = voices(true), cur = store.get('voice', '') || (vs[0] && vs[0].name);
-      if (!vs.length) vr.appendChild(h('p', 'Русский голос не найден. На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский.', 'muted'));
-      vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, ''), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
-    }
-    paintVoices();
-    if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function () { if (vr.isConnected) paintVoices(); };
-    var st = row(); s.appendChild(st);
-    function paintRate() {
-      st.innerHTML = '';
-      [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]].forEach(function (x) { st.appendChild(btn((rate() === x[1] ? '✓ ' : '') + x[0], rate() === x[1] ? 'main' : '', function () { store.set('rate', x[1]); paintRate(); say('Так я говорю.', true); })); });
-    }
-    paintRate();
+    voiceControls(s);
     var wb = btn('', 'wide', function () { store.set('words', !store.get('words', false)); paintWords(); });
     function paintWords() { var on = store.get('words', false); wb.textContent = (on ? '✓ ' : '') + 'Говорить по словам, пока печатаю'; wb.className = on ? 'main wide' : 'wide'; }
     paintWords(); s.appendChild(wb);
     s.appendChild(h('h2', 'Рука и помощь'));
+    s.appendChild(handButtons());
     var hr = row();
-    var hb = btn('', '', function () { left = !left; store.set('hand', left ? 'left' : 'right'); layout(true); hb.textContent = 'Рука: ' + (left ? 'левая' : 'правая'); });
-    hb.textContent = 'Рука: ' + (left ? 'левая' : 'правая'); hr.appendChild(hb);
     hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(function () { adultScreen(false); }); }));
+    hr.appendChild(btn('Первый экран', '', welcomeScreen));
     s.appendChild(hr);
     if (choiceFirst) setTimeout(function () { qf.scrollIntoView({ block: 'center' }); }, 0);
     render();
@@ -783,7 +834,9 @@
   window.addEventListener('resize', function () { layout(); });
   if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', function () { layout(true); }); }
   layout(true);
-  document.querySelector('#tabs button[data-tab="' + (store.get('lessonDone', false) ? 'speak' : 'lesson') + '"]').click();
+  // the welcome comes once; those who already used Пульк go straight on
+  if (!store.get('welcomed', false) && !store.get('lessonDone', false) && !store.get('drops', 0)) welcomeScreen();
+  else document.querySelector('#tabs button[data-tab="' + (store.get('lessonDone', false) ? 'speak' : 'lesson') + '"]').click();
   // for checks on a computer
   window.PULK_WEB = { resolve: resolve, table: table, spot: spot, PH: PH, hit: hit, text: function () { return text; }, lastSaid: function () { return lastSaid; },
     words: function () { return words(); }, userWords: userWords, geo: function () { return { K: K, CX: CX, CY: CY, W: W, left: left }; } };
