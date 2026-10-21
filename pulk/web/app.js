@@ -104,9 +104,46 @@
     var c = scr(PH[0], PH[1]);
     el('circle', { cx: c[0], cy: c[1], r: 13 * K, fill: v('--accent') });
     trail = el('polyline', { points: '', fill: 'none', stroke: v('--accent'), 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.6 });
+    guide.path = el('polyline', { points: '', fill: 'none', stroke: v('--accent'), 'stroke-width': 3, 'stroke-dasharray': '6 7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.7, visibility: 'hidden' });
+    guide.dot = el('circle', { cx: 0, cy: 0, r: 12 * Math.max(K, 0.85), fill: v('--accent'), stroke: v('--on-accent'), 'stroke-width': 3, visibility: 'hidden' });
     bubble = el('circle', { cx: c[0], cy: c[1], r: 26, fill: v('--accent'), visibility: 'hidden' });
     bubbleText = el('text', { x: c[0], y: c[1], 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: v('--on-accent'), 'font-size': 30, 'font-weight': 800, visibility: 'hidden' });
     paintLabels();
+    showGuide(guided ? guided.word[guided.i] : null);
+  }
+  function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  // ---- the guide: a dot that runs the needed stroke on the star, again and again, until the finger repeats it ----
+  var guide = { path: null, dot: null, pts: null, len: 0, raf: 0, t0: 0, target: -1, label: -1 };
+  function strokeFor(ch) { var t = table(); for (var p = 0; p < 8; p++) for (var i = 0; i < 4; i++) if (t[p][i] === ch) return { p: p, i: i, kind: KINDS[i] }; return null; }
+  function guidePts(p, kind) {
+    var a = p * 45 * DEG, dx = Math.cos(a), dy = Math.sin(a), out = [[0, 0]];
+    if (kind === 'c') out.push([dx * 80, dy * 80]);
+    else if (kind === 'b') out.push([dx * 62, dy * 62], [dx * 14, dy * 14]);
+    else { var b = a + (kind === 'l' ? 1 : -1) * Math.PI / 2; out.push([dx * 55, dy * 55], [dx * 55 + Math.cos(b) * 36, dy * 55 + Math.sin(b) * 36]); }
+    return out.map(function (q) { return scr(PH[0] + q[0], PH[1] + q[1]); });
+  }
+  function showGuide(ch) {
+    cancelAnimationFrame(guide.raf); guide.raf = 0;
+    labels.forEach(function (l) { l.el.setAttribute('fill', l.i === 0 ? cssv('--ink') : cssv('--muted')); });
+    var f = ch && strokeFor(ch);
+    if (!f || !guide.path) { guide.target = -1; if (guide.path) { guide.path.setAttribute('visibility', 'hidden'); guide.dot.setAttribute('visibility', 'hidden'); } light(-1); return; }
+    guide.target = f.p; guide.pts = guidePts(f.p, f.kind); guide.len = 0;
+    for (var i = 1; i < guide.pts.length; i++) guide.len += Math.hypot(guide.pts[i][0] - guide.pts[i - 1][0], guide.pts[i][1] - guide.pts[i - 1][1]);
+    guide.path.setAttribute('points', guide.pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '));
+    guide.path.setAttribute('visibility', 'visible');
+    labels.forEach(function (l) { if (l.p === f.p && l.i === f.i) l.el.setAttribute('fill', cssv('--accent')); });
+    light(-1); guide.t0 = performance.now();
+    (function tick(now) {
+      var run = 1300, rest = 700, u = ((now - guide.t0) % (run + rest)) / run;
+      if (touch || u > 1) guide.dot.setAttribute('visibility', 'hidden');
+      else {
+        var e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, d = e * guide.len, i = 1;
+        for (; i < guide.pts.length; i++) { var sl = Math.hypot(guide.pts[i][0] - guide.pts[i - 1][0], guide.pts[i][1] - guide.pts[i - 1][1]); if (d <= sl || i === guide.pts.length - 1) { var k = sl ? Math.min(d / sl, 1) : 0; guide.dot.setAttribute('cx', guide.pts[i - 1][0] + (guide.pts[i][0] - guide.pts[i - 1][0]) * k); guide.dot.setAttribute('cy', guide.pts[i - 1][1] + (guide.pts[i][1] - guide.pts[i - 1][1]) * k); break; } d -= sl; }
+        guide.dot.setAttribute('visibility', 'visible');
+      }
+      guide.raf = requestAnimationFrame(tick);
+    })(guide.t0);
   }
   function caps() { return shiftOnce || !text || /[.!?…]\s$/.test(text) || /\n$/.test(text); }
   function paintLabels() {
@@ -117,7 +154,10 @@
   }
   function light(p) {
     var css = getComputedStyle(document.documentElement);
-    petals.forEach(function (e, i) { e.setAttribute('fill', i === p ? css.getPropertyValue('--press').trim() : css.getPropertyValue('--petal').trim()); });
+    petals.forEach(function (e, i) {
+      e.setAttribute('fill', css.getPropertyValue(i === p ? '--press' : i === guide.target ? '--zone' : '--petal').trim());
+      e.setAttribute('stroke', css.getPropertyValue(i === guide.target ? '--accent' : '--line').trim()); e.setAttribute('stroke-width', i === guide.target ? 2.5 : 1);
+    });
   }
 
   // ---- typing ----
@@ -125,7 +165,23 @@
   function render() {
     var t = $('text'); if (!t) return;
     t.textContent = text; var c = document.createElement('span'); c.className = 'caret'; t.appendChild(c);
+    if (guided) { var rest = guided.word.slice(guided.i), r = document.createElement('span'); r.className = 'rest'; r.textContent = caps() ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest; t.appendChild(r); }
     paintLabels(); paintChips();
+  }
+  // a guided word: only the letter the guide shows is typed; a different one is not an error — the dot shows again,
+  // and after three tries Пульк types it itself, so nobody gets stuck on the first steps
+  var guided = null;
+  function guidedStroke(t) {
+    var want = guided.word[guided.i], s = t.key ? null : resolve(table(), t.pts);
+    if (s && s.petal >= 0 && s.v === want) { guided.note(''); return nextGuided(want); }
+    if (++guided.miss >= 3) { guided.note('Я помог с буквой «' + want + '». Дальше — ты.'); return nextGuided(want); }
+    guided.note(s && s.petal >= 0 ? 'Это «' + s.v + '». Нужна «' + want + '» — веди пальцем, как бежит точка.' : 'Веди пальцем по звезде, как бежит точка.');
+    guide.t0 = performance.now();
+  }
+  function nextGuided(ch) {
+    typeLetter(ch); guided.i++; guided.miss = 0;
+    if (guided.i < guided.word.length) { showGuide(guided.word[guided.i]); render(); return; }
+    var g = guided; guided = null; showGuide(null); render(); g.done();
   }
   function typeLetter(v) { text += caps() && !symbols ? v.toUpperCase() : v; shiftOnce = false; render(); }
   function space() { text += ' '; render(); }
@@ -158,6 +214,7 @@
     var t = touch; touch = null;
     clearTimeout(t.rep); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden');
     if (cancelled) return;
+    if (guided) { guidedStroke(t); return; }
     if (t.key) {
       switch (t.key.fn) {
         case 'space': space(); break; case 'enter': enter(); break;
@@ -214,9 +271,12 @@
     return starts.concat(byWords).slice(0, 3);
   }
 
-  var chipMode = 'speak';
+  var chipMode = 'speak', chipAction = null;
   function paintChips() {
     var box = $('chips'); box.innerHTML = ''; if (!$('text')) return;
+    // the screen's main action sits here, just above the star — under the thumb, never scrolled away
+    if (chipAction) box.appendChild(btn(chipAction.label, 'main', chipAction.fn));
+    if (guided) return;
     if (chipMode === 'speak') completePhrase(text).forEach(function (p, i) {
       var b = document.createElement('button'); b.textContent = p; if (i === 0) b.className = 'main';
       b.onclick = function () { text = p; render(); sayAll(); }; box.appendChild(b);
@@ -256,7 +316,7 @@
   function textBox(hint) { var t = document.createElement('div'); t.id = 'text'; t.setAttribute('data-hint', hint); return t; }
 
   function speakScreen() {
-    var s = $('screen'); s.innerHTML = ''; chipMode = 'speak';
+    var s = $('screen'); s.innerHTML = ''; chipMode = 'speak'; chipAction = null;
     s.appendChild(textBox('Печатай звездой — я скажу'));
     var r = document.createElement('div'); r.className = 'row';
     r.appendChild(btn('Сказать', 'main', sayAll)); r.appendChild(btn('Показать', '', function () { showBig(text.trim()); })); r.appendChild(btn('Стереть', '', function () { text = ''; render(); }));
@@ -283,45 +343,60 @@
     st.appendChild(btn('Рука: ' + (left ? 'левая' : 'правая'), '', function () { left = !left; store.set('hand', left ? 'left' : 'right'); layout(); speakScreen(); }));
     [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]].forEach(function (x) { st.appendChild(btn((rate() === x[1] ? '✓ ' : '') + x[0], rate() === x[1] ? 'main' : '', function () { store.set('rate', x[1]); speakScreen(); })); });
     s.appendChild(st);
+    s.appendChild(btn('Для взрослого рядом', 'wide', function () { parentsScreen(speakScreen); }));
     s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать. 🔊 — сказать ещё раз.', 'muted'));
     onEnter = sayAll; render();
   }
 
-  // «Учимся говорить»: six tiny steps, one thing at a time, nothing wrong
+  // «Учимся говорить»: tiny steps, one new thing each, nothing can go wrong. Letters come with a guide on the star:
+  // first one straight stroke, then a word of straight strokes, only then a stroke with a turn.
   var LESSON = [
-    { say: 'Коснись «Да». Телефон скажет «да».', kind: 'tap', want: 'Да' },
-    { say: 'Теперь коснись «Нет».', kind: 'tap', want: 'Нет' },
-    { say: 'Напечатай звездой «мама» и нажми ⏎ — в углу клавиатуры.', kind: 'type', want: 'мама' },
-    { say: 'Выбери фразу «Хочу пить».', kind: 'pick', want: 'Хочу пить' },
-    { say: 'Покажи фразу маме: нажми «Показать».', kind: 'show', want: 'Привет' },
-    { say: 'Теперь скажи что-нибудь своё. Любое.', kind: 'free' },
+    { t: 'Коснись «Да»', n: 'Телефон скажет «да».', kind: 'tap', want: 'Да' },
+    { t: 'Теперь коснись «Нет»', kind: 'tap', want: 'Нет' },
+    { t: 'Первая буква — «а»', n: 'Смотри на звезду внизу: бежит точка. Проведи пальцем так же — вверх. Начинать можно где угодно на звезде.', kind: 'guide', want: 'а' },
+    { t: 'Слово «нет»', n: 'Три буквы — три движения. Точка показывает каждое.', kind: 'guide', want: 'нет' },
+    { t: 'Выбери «Хочу пить»', kind: 'pick', want: 'Хочу пить' },
+    { t: 'Слово «мама»', n: 'Буква «м» — с поворотом: веди вправо и в конце поверни вверх. Точка покажет.', kind: 'guide', want: 'мама' },
+    { t: 'Покажи фразу маме', n: 'Нажми «Показать» — фраза станет крупной.', kind: 'show', want: 'Привет' },
+    { t: 'Своё слово', n: 'Напечатай что хочешь и нажми «Сказать» — над вкладками.', kind: 'free' },
   ];
   var step = 0;
   function close(a, b) { a = norm(a); b = norm(b); if (a === b) return true; if (Math.abs(a.length - b.length) > 1) return false; var d = 0, i = 0, j = 0; while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue; } if (++d > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; } } return d + (a.length - i) + (b.length - j) <= 1; }
   function lessonScreen() {
-    var s = $('screen'); s.innerHTML = ''; chipMode = 'none';
+    var s = $('screen'); s.innerHTML = ''; chipMode = 'none'; chipAction = null; guided = null; showGuide(null);
     if (step >= LESSON.length) {
       store.set('lessonDone', true);
       s.appendChild(h('h1', 'Ты умеешь говорить с Пульком'));
-      s.appendChild(h('p', 'Печатай — телефон скажет. ⏎ — сказать. Быстрые ответы — одним касанием.'));
+      s.appendChild(h('p', 'Печатай — телефон скажет. «Сказать» — над вкладками или ⏎ в углу звезды. Быстрые ответы и фразы — во вкладке «Говорить».'));
       s.appendChild(btn('Ещё раз', 'wide', function () { step = 0; lessonScreen(); }));
+      s.appendChild(btn('Для взрослого рядом', 'wide', function () { parentsScreen(lessonScreen); }));
       onEnter = null; render(); return;
     }
-    var st = LESSON[step], tries = 0;
+    var st = LESSON[step];
     s.appendChild(dots(LESSON.length, step, 'шаг ' + (step + 1) + ' из ' + LESSON.length));
-    s.appendChild(h('h1', st.say));
+    if (step === 0) {
+      var pc = document.createElement('div'); pc.className = 'card';
+      pc.appendChild(h('div', 'Взрослому рядом: как помочь — на одну минуту чтения.', 'muted'));
+      pc.appendChild(btn('Для взрослого рядом', 'wide', function () { parentsScreen(lessonScreen); }));
+      s.appendChild(pc);
+    }
+    s.appendChild(h('h1', st.t));
+    if (st.n) s.appendChild(h('p', st.n, 'note'));
     var ok = h('div', '', 'ok');
-    function success() { var n = addDrop(); ok.textContent = 'Получилось. +1 капля — в пруду ' + n; setTimeout(function () { step++; lessonScreen(); }, 1100); }
+    function success() { var n = addDrop(); ok.style.color = ''; ok.textContent = 'Получилось. +1 капля — в пруду ' + n; setTimeout(function () { step++; lessonScreen(); }, 1300); }
     if (st.kind === 'tap') { var r = document.createElement('div'); r.className = 'row'; (step === 0 ? ['Да'] : ['Да', 'Нет']).forEach(function (w) { var b = btn(w, w === st.want ? 'main' : '', function () { say(w); if (w === st.want) success(); }); b.style.flex = '1'; b.style.minHeight = '96px'; b.style.fontSize = '26px'; r.appendChild(b); }); s.appendChild(r); }
-    if (st.kind === 'type' || st.kind === 'free') {
-      text = ''; s.appendChild(textBox(st.kind === 'type' ? 'мама' : 'Печатай звездой'));
-      onEnter = function () {
-        var t = text.trim(); if (!t) return; say(t);
-        if (st.kind === 'free' || close(t, st.want)) success();
-        else { tries++; text = ''; render(); ok.style.color = 'var(--muted)'; ok.textContent = 'Сказано «' + t + '». Попробуй «' + st.want + '».' + (tries >= 2 ? ' Подсказка: «м» — смахни вправо и поверни вверх, «а» — смахни вверх.' : ''); }
-      };
-      s.appendChild(btn('Сказать', 'main wide', function () { onEnter(); }));
-    } else onEnter = null;
+    onEnter = null;
+    if (st.kind === 'guide') {
+      text = ''; lang = 'ru'; symbols = false; shiftOnce = false;
+      s.appendChild(textBox(''));
+      guided = { word: st.want, i: 0, miss: 0, note: function (m) { ok.style.color = 'var(--muted)'; ok.textContent = m; }, done: function () { say(text.trim()); success(); } };
+      showGuide(st.want[0]);
+    }
+    if (st.kind === 'free') {
+      text = ''; s.appendChild(textBox('Печатай звездой'));
+      onEnter = function () { var t = text.trim(); if (!t) return; say(t); remember(t); success(); };
+      chipAction = { label: 'Сказать', fn: function () { onEnter(); } };
+    }
     if (st.kind === 'pick') ['Хочу есть', 'Хочу пить', 'Мне холодно'].forEach(function (p) { s.appendChild(btn(p, 'wide', function () { say(p); if (p === st.want) success(); })); });
     if (st.kind === 'show') { s.appendChild(h('h1', st.want)); s.appendChild(btn('Показать', 'main wide', function () { showBig(st.want); $('back').onclick = function () { $('big').style.display = 'none'; $('back').onclick = function () { $('big').style.display = 'none'; }; success(); }; })); }
     s.appendChild(ok); render();
@@ -332,7 +407,7 @@
   function themes() { return D.themes.concat(drops() >= 15 && D.play ? [D.play] : []); }
   function fits(a, task) { if (!task.keys.length) return !!a.trim(); var n = norm(a); return task.keys.some(function (k) { return n.indexOf(norm(k)) >= 0; }) || close(a, task.model); }
   function drillsScreen() {
-    var s = $('screen'); s.innerHTML = ''; chipMode = 'none'; onEnter = null;
+    var s = $('screen'); s.innerHTML = ''; chipMode = 'none'; onEnter = null; chipAction = null;
     if (theme < 0) {
       s.appendChild(h('h1', 'Тренировки'));
       s.appendChild(h('p', 'Короткие жизненные ситуации. Читаешь — отвечаешь: печатаешь звездой или выбираешь. Телефон говорит ответ.', 'muted'));
@@ -360,11 +435,50 @@
       text = ''; render();
     }
     onEnter = function () { answer(text.trim()); };
-    s.appendChild(btn('Сказать', 'main wide', function () { answer(text.trim()); }));
+    chipAction = { label: 'Сказать', fn: function () { answer(text.trim()); } };
     s.appendChild(h('p', '…или выбери:', 'muted'));
     task.choices.forEach(function (c) { s.appendChild(btn(c, 'wide', function () { answer(c); })); });
     s.appendChild(ok); s.appendChild(btn('К темам', 'wide', function () { theme = -1; drillsScreen(); }));
     render();
+  }
+
+  // «Для взрослого рядом»: most children start with a parent beside them; a minute of reading so the help helps
+  var PARENTS = [
+    ['Перед началом', [
+      'Включите звук. Сядьте рядом, сбоку, а не напротив: так вы видите экран так же, как ребёнок.',
+      'Телефон держит ребёнок или он лежит на столе. Палец — его.',
+      'Пяти минут достаточно. Заканчивайте, пока ещё интересно.']],
+    ['Как помогать', [
+      'Покажите движение один раз своим пальцем над звездой — и уберите руку. Не водите его пальцем: тогда это сделал не он.',
+      'Подождите 5–10 секунд, прежде чем подсказывать. Тишина — время подумать.',
+      'Ошибок здесь нет. Не та буква просто не печатается, а точка на звезде показывает ещё раз. После трёх попыток Пульк поможет сам.',
+      'Хвалите за попытку, коротко и спокойно: «Ты напечатал». Громкая похвала многим детям неприятна.']],
+    ['Когда ребёнок говорит', [
+      'Отвечайте на сказанное как на настоящие слова. Сказал «нет» — это «нет»; уважайте его, когда это возможно. Так ребёнок узнаёт, что слова работают.',
+      'Не экзаменуйте («Напиши, что это»). Предлагайте настоящий выбор: «Сок или воду?»',
+      'Говорите и сами через Пульк: напечатайте и скажите ребёнку что-нибудь. Он увидит, как этим пользуются, — без требования повторить.']],
+    ['Если что-то не так', [
+      'Устал, расстроился, отворачивается — остановитесь. Вернётесь потом: капли в пруду не пропадают.',
+      'Левой рукой удобнее — во вкладке «Говорить» есть настройка «Рука».',
+      'Голос звучит плохо: Настройки iPhone → Универсальный доступ → Устная речь → Голоса → Русский, скачайте улучшенный голос.',
+      'Чтобы ребёнок случайно не выходил со страницы: Настройки → Универсальный доступ → Гид-доступ. Включите, откройте Пульк и трижды нажмите боковую кнопку.',
+      'Добавьте Пульк на экран «Домой»: в Safari «Поделиться» → «На экран „Домой“». Без адресной строки места больше.']],
+    ['Что дальше', [
+      'Урок → «Тренировки» по ситуациям (просьбы, самочувствие, окружение) → «Говорить» в жизни. Каждая получившаяся фраза — капля в пруду.',
+      'Всё набранное остаётся на этом телефоне: Пульк ничего никуда не отправляет.']],
+  ];
+  function parentsScreen(back) {
+    var s = $('screen'); s.innerHTML = ''; chipMode = 'none'; chipAction = null; onEnter = null; guided = null; showGuide(null);
+    s.appendChild(btn('← Вернуться', '', back));
+    s.appendChild(h('h1', 'Для взрослого рядом'));
+    s.appendChild(h('p', 'Пульк — способ говорить: ребёнок печатает одним пальцем, телефон произносит. Заранее ничего знать не нужно.', 'note'));
+    PARENTS.forEach(function (sec) {
+      s.appendChild(h('h2', sec[0]));
+      var ul = document.createElement('ul'); ul.className = 'tips';
+      sec[1].forEach(function (x) { ul.appendChild(h('li', x)); }); s.appendChild(ul);
+    });
+    s.appendChild(btn('Понятно — вернуться', 'main wide', back));
+    s.scrollTop = 0; render();
   }
 
   function pondScreen() {
@@ -386,7 +500,7 @@
 
   var SCREENS = { speak: speakScreen, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
   document.querySelectorAll('#tabs button').forEach(function (b) {
-    b.onclick = function () { tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); SCREENS[tab](); };
+    b.onclick = function () { guided = null; showGuide(null); chipAction = null; tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); SCREENS[tab](); };
   });
   window.addEventListener('resize', function () { layout(); });
   layout();
