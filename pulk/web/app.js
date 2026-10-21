@@ -336,7 +336,7 @@
   var guided = null;
   function guidedStroke(t) {
     if (t.key) { guide.t0 = performance.now(); return; }   // a service key is not a try: just show the way again
-    var want = guided.word[guided.i], s = resolve(table(), t.pts);
+    var want = guided.word[guided.i], s = t.slot || resolve(table(), t.pts);
     if (s.petal >= 0 && s.v === want) { guided.note(''); return nextGuided(want); }
     missed(want);
     if (++guided.miss >= 3) { guided.note('Я помог с буквой «' + want + '». Дальше — ты.'); return nextGuided(want); }
@@ -381,21 +381,55 @@
   }
   function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game; }
 
+  // ---- a steadier hand (as Pulse.Steady): tremor smoothed with the 1€ filter (Casiez, Roussel, Vogel, CHI 2012) —
+  // strong smoothing while the finger moves slowly or rests, almost none in a quick stroke; and strokes measured
+  // against this hand's own length: «long» means short jitter must not count, «short» means short strokes are enough ----
+  function alpha(cut, dt) { var tau = 1 / (2 * Math.PI * cut); return 1 / (1 + tau / dt); }
+  function OneEuro(minCut, beta) { this.minCut = minCut; this.beta = beta; this.x0 = NaN; this.dx0 = 0; this.t0 = 0; }
+  OneEuro.prototype.f = function (x, t) {
+    if (this.x0 !== this.x0) { this.x0 = x; this.t0 = t; return x; }
+    var dt = Math.max(1, t - this.t0) / 1000; this.t0 = t;
+    var dx = (x - this.x0) / dt;
+    this.dx0 += alpha(1, dt) * (dx - this.dx0);
+    this.x0 += alpha(this.minCut + this.beta * Math.abs(this.dx0), dt) * (x - this.x0);
+    return this.x0;
+  };
+  function Steady(ox, oy) {
+    var sm = store.get('smooth', 0), mc = sm === 2 ? 0.8 : 3;   // Hz: strong or light smoothing
+    this.ox = ox; this.oy = oy; this.tol = store.get('tol', 1); this.on = sm > 0;
+    this.fx = new OneEuro(mc, 0.02); this.fy = new OneEuro(mc, 0.02);
+  }
+  Steady.prototype.at = function (x, y, t) {
+    var sx = this.on ? this.fx.f(x, t) : x, sy = this.on ? this.fy.f(y, t) : y;
+    return [this.ox + (sx - this.ox) / this.tol, this.oy + (sy - this.oy) / this.tol];
+  };
+  // accidental touches: a brush shorter than this is not a letter, and a touch right after another is a bounce
+  function guardMin() { return [0, 80, 160][store.get('guard', 0)] || 0; }
+  function guardGap() { return [0, 120, 300][store.get('guard', 0)] || 0; }
+  var lastEnd = 0;
+
   // ---- touch on the keyboard ----
   var touch = null;
   function point(e) { var r = svg.getBoundingClientRect(); return toBase(e.clientX - r.left, e.clientY - r.top); }
   svg.addEventListener('pointerdown', function (e) {
     e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (x) {}
     if (touch) return;   // one thumb: a second finger is ignored
-    var b = point(e);
-    touch = { id: e.pointerId, key: hit(b[0], b[1]), pts: [b[0], b[1]], trail: [xy(scr(b[0], b[1]))], still: Date.now(), ax: b[0], ay: b[1], shown: '' };
+    var b = point(e), now = Date.now();
+    if (now - lastEnd < guardGap()) { touch = { id: e.pointerId, ignored: true }; return; }   // a bounce
+    touch = { id: e.pointerId, key: hit(b[0], b[1]), pts: [b[0], b[1]], trail: [xy(scr(b[0], b[1]))], still: now, start: now, ax: b[0], ay: b[1], shown: '' };
+    if (!touch.key) touch.steady = new Steady(b[0], b[1]);
     if (!touch.key && jabsOn()) touch.jabs = new Jabs(b[0], b[1]);
-    if (touch.key && touch.key.fn === 'bksp' && !guided) { backspace(); touch.rep = setTimeout(function rep() { backspace(); if (touch) touch.rep = setTimeout(rep, 70); }, 450); }
+    if (touch.key && touch.key.fn === 'bksp' && !guided) {
+      // with the guard on, ⌫ waits for the finger to be sure (on release); held, it repeats either way
+      if (!guardMin()) backspace();
+      touch.rep = setTimeout(function rep() { backspace(); if (touch) { touch.repeated = true; touch.rep = setTimeout(rep, 70); } }, 450);
+    }
     keepAwake();
   });
   svg.addEventListener('pointermove', function (e) {
-    if (!touch || touch.id !== e.pointerId || touch.key) return;
+    if (!touch || touch.id !== e.pointerId || touch.key || touch.ignored) return;
     var b = point(e);
+    if (touch.steady) b = touch.steady.at(b[0], b[1], e.timeStamp || Date.now());
     if (touch.jabs) {
       var done = touch.jabs.add(b[0], b[1]);
       if (done) { typeLetter(jab(table(), done).v); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden'); touch.shown = ''; return; }
@@ -420,9 +454,12 @@
   function endTouch(e, cancelled) {
     if (!touch || touch.id !== e.pointerId) return;
     var t = touch; touch = null;
+    if (t.ignored) return;
+    var tooShort = Date.now() - t.start < guardMin(); lastEnd = Date.now();
     clearTimeout(t.rep); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden');
     if (relayout) { relayout = false; layout(true); }
-    if (cancelled) return;
+    if (cancelled || tooShort) return;
+    if (t.key && t.key.fn === 'bksp') { if (guardMin() && !t.repeated && !guided) backspace(); return; }
     if (guided) { guidedStroke(t); return; }
     if (game && !t.key) { gameStroke(t); return; }
     if (t.jabs) { var last = t.jabs.finish(); if (last) typeLetter(jab(table(), last).v); space(); return; }
@@ -443,6 +480,82 @@
   }
   svg.addEventListener('pointerup', function (e) { endTouch(e, false); });
   svg.addEventListener('pointercancel', function (e) { endTouch(e, true); });
+
+  // ---- a joystick, a gamepad or a keyboard as the star — nothing to set up. A stick works as «Толчки»: a push out
+  // and back is a letter, a short push the letter at the centre, a push that turns the letter with a turn. Keys:
+  // the number pad (or arrows) gives directions; held together with 5 — the centre letter, with a neighbour — the turn ----
+  function commitSlot(s) {
+    keepAwake();
+    if (guided) return guidedStroke({ slot: s });
+    if (game) return gameStroke({ slot: s });
+    if (s.petal < 0) space(); else typeLetter(s.v);
+  }
+  function showCand(s) {
+    light(s ? s.petal : -1);
+    if (!s) { bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden'); return; }
+    bubbleText.textContent = caps() && !symbols ? s.v.toUpperCase() : s.v;
+    bubble.setAttribute('visibility', 'visible'); bubbleText.setAttribute('visibility', 'visible');
+  }
+  function keyAction(fn) {
+    if (guided || document.body.classList.contains('welcome')) return;
+    keepAwake();
+    if (fn === 'space') space(); else if (fn === 'bksp') backspace(); else if (fn === 'enter') { if (onEnter) onEnter(); }
+    else if (fn === 'shift') { shiftOnce = !shiftOnce; lastFix = null; paintLabels(); }
+  }
+  var KEYDIR = { Numpad6: 0, Numpad9: 1, Numpad8: 2, Numpad7: 3, Numpad4: 4, Numpad1: 5, Numpad2: 6, Numpad3: 7, ArrowRight: 0, ArrowUp: 2, ArrowLeft: 4, ArrowDown: 6 };
+  var pend = null;   // the direction key held down: its letter goes when the key is let go
+  function flushPend() { if (!pend) return; var s = slot(table(), pend.p, pend.kind); pend = null; showCand(null); commitSlot(s); }
+  document.addEventListener('keydown', function (e) {
+    var tg = e.target;
+    if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.body.classList.contains('welcome') || $('big').style.display === 'flex') return;
+    var d = KEYDIR[e.code];
+    if (d != null) {
+      e.preventDefault(); if (e.repeat) return;
+      var p = left ? (4 - d + 8) % 8 : d;   // the left hand's star is mirrored
+      if (pend && pend.kind === 'c') { var diff = (p - pend.p + 8) % 8; if (diff >= 1 && diff <= 3) { pend.kind = 'l'; } else if (diff >= 5) { pend.kind = 'r'; } if (pend.kind !== 'c') { showCand(slot(table(), pend.p, pend.kind)); return; } }
+      flushPend();
+      pend = { p: p, kind: 'c', code: e.code }; showCand(slot(table(), p, 'c')); return;
+    }
+    if (e.code === 'Numpad5' || e.code === 'Numpad0') {
+      e.preventDefault(); if (e.repeat) return;
+      if (pend && e.code === 'Numpad5') { pend.kind = 'b'; showCand(slot(table(), pend.p, 'b')); } else commitSlot(SPACE);
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace') {
+      e.preventDefault(); flushPend();
+      keyAction(e.key === ' ' ? 'space' : e.key === 'Enter' ? 'enter' : 'bksp'); return;
+    }
+    // a big-key keyboard or any keyboard: letters go straight in
+    if (e.key && e.key.length === 1 && /[а-яёa-z.,!?'-]/i.test(e.key)) {
+      e.preventDefault(); flushPend();
+      var ch = e.key.toLowerCase(), at = strokeFor(ch);
+      commitSlot({ petal: at ? at.p : 0, kind: at ? at.kind : 'c', v: ch });
+    }
+  });
+  document.addEventListener('keyup', function (e) { if (pend && e.code === pend.code) flushPend(); });
+
+  var pad = { raf: 0, j: null, btn: [] };
+  function pollPad() {
+    var gps = navigator.getGamepads ? navigator.getGamepads() : [], g = null;
+    for (var i = 0; i < gps.length; i++) if (gps[i] && gps[i].connected) { g = gps[i]; break; }
+    if (!g) { pad.raf = 0; return; }
+    if (!document.body.classList.contains('welcome')) {
+      var x = g.axes[0] || 0, y = g.axes[1] || 0, m = Math.hypot(x, y), bx = 0, by = 0;
+      if (m > 0.22) { var k = (m - 0.22) / 0.78 * 90 / m; bx = x * k * (left ? -1 : 1); by = -y * k; }   // a dead zone, then up to 90 units
+      if (!pad.j) pad.j = new Jabs(0, 0);
+      var done = pad.j.add(bx, by);
+      if (done) { showCand(null); commitSlot(jab(table(), done)); }
+      else if (pad.j.cur.length) showCand(jab(table(), pad.j.cur));
+      [['space', 0], ['bksp', 1], ['enter', 2], ['shift', 3]].forEach(function (b) {
+        var on = !!(g.buttons[b[1]] && g.buttons[b[1]].pressed);
+        if (on && !pad.btn[b[1]]) keyAction(b[0]);
+        pad.btn[b[1]] = on;
+      });
+    }
+    pad.raf = requestAnimationFrame(pollPad);
+  }
+  window.addEventListener('gamepadconnected', function () { if (!pad.raf) pollPad(); });
 
   // ---- phrases: own first, then history, the ready ones and the day's; a few first letters (or the first letters
   // of words: «ск ст») bring a whole phrase ----
@@ -681,6 +794,15 @@
     s.scrollTop = s.scrollHeight;
   }
 
+  function pick(s, label, key, def, list, note) {
+    s.appendChild(h('div', label, 'title'));
+    if (note) s.appendChild(h('p', note, 'muted'));
+    var r = row(); s.appendChild(r);
+    (function paint() {
+      r.innerHTML = '';
+      list.forEach(function (x) { var on = store.get(key, def) === x[1]; r.appendChild(btn((on ? '✓ ' : '') + x[0], on ? 'main' : '', function () { store.set(key, x[1]); paint(); })); });
+    })();
+  }
   function toggle(label, key, def, after) {
     var b = btn('', 'wide', function () { store.set(key, !store.get(key, def)); paint(); if (after) after(); });
     function paint() { var on = store.get(key, def); b.textContent = (on ? '✓ ' : '') + label; b.className = on ? 'main wide' : 'wide'; }
@@ -902,6 +1024,12 @@
     s.appendChild(toggle('Крупная звезда — больше места для пальца', 'bigStar', false, function () { layout(true); }));
     s.appendChild(toggle('Звук «пульк» на каждую букву', 'tick', true));
     s.appendChild(toggle('Спокойный режим: меньше кнопок, мягче голос, без звука букв', 'calm', false));
+    s.appendChild(h('h2', 'Если рука дрожит или задевает экран'));
+    pick(s, 'Защита от случайных касаний', 'guard', 0, [['Нет', 0], ['Слабая', 1], ['Сильная', 2]], 'Короткие задевания и повторные «дребезжащие» касания не станут буквами.');
+    pick(s, 'Сгладить дрожь', 'smooth', 0, [['Нет', 0], ['Слегка', 1], ['Сильно', 2]], 'Дрожь сглаживается, когда палец движется медленно; быстрый смах не запаздывает.');
+    pick(s, 'Длина смаха', 'tol', 1, [['Короткая', 0.75], ['Обычная', 1], ['Длинная', 1.4]], '«Короткая» — хватит маленького движения; «Длинная» — мелкие подёргивания не считаются.');
+    s.appendChild(h('h2', 'Джойстик, геймпад, клавиатура'));
+    s.appendChild(h('p', 'Подключаются сами, без настройки — например, джойстик коляски или большая клавиатура по Bluetooth. Джойстик: толчок к букве и назад — буква, короткий толчок — буква у центра, толчок с поворотом — буква с поворотом. Кнопки: A — пробел, B — стереть, X — сказать, Y — заглавная. Клавиатура: цифры справа (или стрелки) — направления; держите вместе с 5 — буква у центра, вместе с соседней цифрой — буква с поворотом; буквы можно печатать и просто клавишами.', 'note'));
 
     s.appendChild(h('h2', 'Помощь'));
     var hr = row();
@@ -1063,7 +1191,7 @@
     };
     paint(); render();
   }
-  function gameStroke(t) { var s = resolve(table(), t.pts); if (s.petal >= 0 && s.v === game.letter) game.hit(); else game.wrong(s.petal >= 0 ? s.v : ''); }
+  function gameStroke(t) { var s = t.slot || resolve(table(), t.pts); if (s.petal >= 0 && s.v === game.letter) game.hit(); else game.wrong(s.petal >= 0 ? s.v : ''); }
 
   // «Тренировки»: everyday scenes; type or choose; any answer is said
   var theme = -1, at = 0;
@@ -1140,7 +1268,8 @@
       'Говорите и сами через Пульк: напечатайте и скажите ребёнку что-нибудь. Он увидит, как этим пользуются, — без требования повторить.']],
     ['Если что-то не так', [
       'Устал, расстроился, отворачивается — остановитесь. Вернётесь потом: капли в пруду не пропадают.',
-      'Левой рукой удобнее: «Говорить» → «Голос, «Про меня», рука».',
+      'Левой рукой удобнее: «Говорить» → «Настройки и помощь» → «Удобство».',
+      'Рука дрожит или задевает экран: там же — защита от случайных касаний, сглаживание дрожи, длина смаха. Можно подключить джойстик или большую клавиатуру.',
       'Голос звучит плохо: Настройки iPhone → Универсальный доступ → Устная речь → Голоса → Русский, скачайте улучшенный голос.',
       'Чтобы ребёнок случайно не выходил со страницы: Настройки → Универсальный доступ → Гид-доступ. Включите, откройте Пульк и трижды нажмите боковую кнопку.',
       'Добавьте Пульк на экран «Домой»: в Safari «Поделиться» → «На экран „Домой“». Без адресной строки места больше.']],
