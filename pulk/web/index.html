@@ -42,7 +42,13 @@
   button.urgent { color: var(--urgent); border-color: var(--urgent); font-weight: 700; }
   .line { display: flex; gap: 6px; align-items: flex-end; } .line .wide { flex: 1; }
   button.x { min-width: 48px; padding: 0; color: var(--muted); }
-  textarea { width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; -webkit-user-select: text; user-select: text; }
+  .choice { border-color: var(--accent); } .cq { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .choices button { min-height: 72px; font-size: 22px; font-weight: 700; }
+  button.quiet { color: var(--muted); border-style: dashed; }
+  button.big { flex: 1; min-height: 96px; font-size: 26px; }
+  .card .title { font-weight: 700; }
+  input[type=text], textarea { width: 100%; margin-top: 8px; font: inherit; min-height: 48px; font-size: 16px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; -webkit-user-select: text; user-select: text; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; }
   .ok { color: var(--accent); font-weight: 700; min-height: 24px; margin-top: 8px; }
   #chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px max(12px, env(safe-area-inset-left, 0px)); min-height: 60px; align-items: center; scrollbar-width: none; }
@@ -75,7 +81,8 @@
     var files = ['./', 'index.html', 'data.js', 'app.js', 'next_ru.txt', '../../dict_ru.txt', '../icon.png', '../pulk-sound.js'];
     function warm() { files.forEach(function (u) { fetch(u).catch(function () {}); }); }
     navigator.serviceWorker.register('../../sw.js', { scope: '../../' }).then(function () {
-      if (navigator.serviceWorker.controller) warm(); else navigator.serviceWorker.addEventListener('controllerchange', warm, { once: true });
+      // once in control, every load goes through it and is kept; only the very first visit needs filling in
+      if (!navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener('controllerchange', warm, { once: true });
     }).catch(function () {});
   });
 </script>
