@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="darkreader-lock">
+<title>Пульк — инструкция для родителя</title>
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root { --bg: #0D1215; --panel: #141B1F; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2; --accent: #55BAD7; --accent-fg: #06222B; --tip: #1A2A31; --rec: #2A2416; --rec-line: #6B5A2E; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 660px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; gap: 16px; align-items: center; }
+  header img { width: 60px; height: 60px; border-radius: 16px; }
+  h1 { margin: 0; font-size: 28px; line-height: 1.15; text-wrap: balance; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  h2 { font-size: 22px; margin: 36px 0 8px; text-wrap: balance; }
+  h3 { font-size: 18px; margin: 26px 0 6px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  a { color: var(--accent); }
+  ol, ul { padding-left: 22px; } li { margin: 7px 0; }
+  .short { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 6px 18px 10px; margin: 18px 0; }
+  .short ol { counter-reset: s; list-style: none; padding: 0; }
+  .short ol > li { counter-increment: s; position: relative; padding-left: 42px; margin: 12px 0; }
+  .short ol > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font-weight: 800; display: grid; place-items: center; }
+  .tip, .rec { border-radius: 12px; padding: 10px 14px; margin: 12px 0; font-size: 16px; }
+  .tip { background: var(--tip); border-left: 4px solid var(--accent); }
+  .rec { background: var(--rec); border-left: 4px solid var(--rec-line); }
+  .tip b, .rec b { display: block; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
+  .tip b { color: var(--accent); } .rec b { color: #E0B75A; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 10px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .get { display: block; margin: 18px 0 8px; padding: 15px; border-radius: 14px; background: var(--accent); color: var(--accent-fg); text-align: center; font-weight: 700; font-size: 18px; text-decoration: none; }
+  .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .nav a { flex: 1 1 180px; text-align: center; padding: 12px; border: 1px solid var(--accent); border-radius: 12px; text-decoration: none; }
+  .say { display: inline-block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0 8px; font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icon.png" alt=""><div><h1>Инструкция для родителя</h1><p class="sub">Как помочь ребёнку начать говорить с Пульком</p></div></header>
+
+  <p>Пульк помогает ребёнку, который не говорит или говорит мало: он ведёт пальцем по звезде, а телефон произносит слова вслух. Бесплатно, без регистрации, всё остаётся на телефоне.</p>
+  <a class="get" href="https://danyapole.github.io/duga/pulk/web/">Открыть Пульк</a>
+  <p class="muted">На iPhone — в Safari. На Android можно поставить приложение со <a href="./">страницы скачивания</a>.</p>
+
+  <h2>Коротко — 5 шагов</h2>
+  <div class="short"><ol>
+    <li><b>Поставьте.</b> Откройте ссылку в Safari → «Поделиться» → «На экран „Домой“». Появится значок Пульк.</li>
+    <li><b>Первый экран.</b> Рука ребёнка → «Подстроить под человека» → пять вопросов. Отвечайте за ребёнка; на «Рядом будет взрослый?» — «Да».</li>
+    <li><b>Урок, 3 минуты.</b> «Учиться говорить»: точка на звезде показывает путь. Ошибиться нельзя.</li>
+    <li><b>Первый разговор.</b> «Говорить» → «Предложить выбор» → напишите «сок, вода», спросите вслух. Ребёнок коснётся — телефон скажет.</li>
+    <li><b>После.</b> «Настройки и помощь» → «Первая проверка»: запишите, что заметили. И «Сохранить копию».</li>
+  </ol></div>
+  <div class="rec"><b>Совет</b>5–10 минут, вы рядом сбоку, палец — его. Ждите 5–10 секунд, прежде чем подсказывать. Заканчивайте, пока ещё интересно.</div>
+
+  <h2>Подробно</h2>
+  <h3>Как это работает</h3>
+  <p>Внизу экрана — звезда из восьми лепестков. Букву выбирает направление движения, а не точное место: вверх — «а», вправо — «н». Поэтому мимо не попасть. Смах с поворотом — редкая буква снаружи, «туда и обратно» — буква у центра. Пульк сам поправляет промахи звезды: <span class="say">маьа</span> станет <span class="say">мама</span>.</p>
+
+  <h3>Подготовка — 10 минут, без ребёнка</h3>
+  <ul>
+    <li>Поставьте Пульк на экран «Домой» и включите звук.</li>
+    <li>Пройдите первый экран: рука, «Подстроить под человека», пять вопросов. В конце Пульк напишет, что включил.</li>
+    <li>«Настройки и помощь» → «Словарь семьи»: 3–4 слова с фото — мама, любимая игрушка, еда, место. Эти слова пойдут первыми в подсказках и появятся на кнопках выбора.</li>
+    <li>Там же — «Про меня»: «Меня зовут… Я не говорю, но всё понимаю». Одно касание — и это скажется и покажется незнакомому.</li>
+  </ul>
+  <div class="tip"><b>Подсказка</b>Не уверены в ответе на вопрос — выбирайте «Не знаю»: Пульк включит только то, что никому не мешает. Всё можно поменять в «Удобстве».</div>
+  <div class="tip"><b>Подсказка</b>Голос звучит плохо? На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский — скачайте улучшенный голос и выберите его в «Удобстве».</div>
+
+  <h3>Первое занятие</h3>
+  <ol>
+    <li>Сядьте сбоку, не напротив: так вы видите экран так же, как ребёнок. Телефон — у ребёнка в руке или на столе.</li>
+    <li>«Учиться»: «Да», «Нет», буква «а», слово «нет», выбор, слово «мама», «Показать», своё слово.</li>
+    <li>Покажите движение один раз своим пальцем в воздухе — и уберите руку.</li>
+    <li>Устал или отворачивается — остановитесь. Капли в пруду не пропадут.</li>
+  </ol>
+  <div class="rec"><b>Совет</b>Не водите пальцем ребёнка: тогда это сделал не он. Хвалите спокойно и коротко: «Ты напечатал». Громкая похвала многим детям неприятна.</div>
+
+  <h3>Как разговаривать</h3>
+  <ul>
+    <li><b>Начните с выбора.</b> «Предложить выбор»: вопрос и варианты через запятую. Так разговор получается в первый же день, даже до букв.</li>
+    <li><b>«Разговор»</b> — лента: ваши вопросы слева, его ответы справа, крупно. Скажите вопрос вслух и напишите его — многим детям написанное понятнее.</li>
+    <li><b>Отвечайте на его слова как на настоящие.</b> Сказал «нет» — это «нет», когда это возможно.</li>
+    <li><b>Не экзаменуйте</b> («напиши, что это»). Спрашивайте то, что вам правда важно знать.</li>
+    <li><b>Говорите и сами через Пульк</b> иногда — без требования повторить.</li>
+    <li><b>Покажите «Близким»:</b> <span class="say">Я тебя люблю</span> <span class="say">Обними меня</span> <span class="say">Посмотри!</span> Речь — не только просьбы.</li>
+  </ul>
+  <div class="tip"><b>Подсказка</b>Частую фразу сохраните кнопкой «★ В мои». Целую фразу можно вызвать по первым буквам слов: «ск ст» → «Сколько это стоит?».</div>
+
+  <h3>Что где</h3>
+  <div class="wrap"><table><tr><th>Где</th><th>Что там</th></tr><tr><td>Учиться</td><td>Урок из 8 шагов: путь буквы показывает точка на звезде, не та буква не печатается, после трёх попыток Пульк помогает</td></tr><tr><td>Говорить</td><td>Крупные ответы (Да, Нет, Подожди…), «Срочно», «Про меня», фразы, «Разговор»</td></tr><tr><td>Говорить → Фразы</td><td>Мои, Семья (с фото), Сейчас (утро, день, вечер, ночь), Близким, Общение, Магазин, Врач, Транспорт, Дом, Срочно</td></tr><tr><td>Тренировки</td><td>Короткие ситуации: просьбы, самочувствие, чувства, окружение, знакомство, ответы, разминка; игра «Пузыри»</td></tr><tr><td>Пруд</td><td>Капли за каждый получившийся шаг урока и тренировки — только копятся</td></tr><tr><td>Настройки и помощь</td><td>Предложить выбор, словарь семьи, свои темы, «Про меня», копия данных, «Удобство», памятки</td></tr></table></div>
+
+  <h3>Если что-то не так</h3>
+  <ul>
+    <li><b>Нет звука</b> — проверьте переключатель беззвучного режима и громкость, потом коснитесь любой кнопки.</li>
+    <li><b>Пульк поправил слово не так</b> — сразу после пробела нажмите ⌫: вернётся, как было, и Пульк запомнит это слово.</li>
+    <li><b>Рука дрожит или задевает экран</b> — «Удобство» → «Руки»: защита от случайных касаний, сглаживание дрожи, «Проверить руку».</li>
+    <li><b>Ребёнок выходит со страницы</b> — на iPhone: Настройки → Универсальный доступ → Гид-доступ; в Пульке трижды нажмите боковую кнопку.</li>
+    <li><b>Расстроился</b> — остановитесь, вернётесь завтра.</li>
+  </ul>
+  <div class="rec"><b>Совет</b>Раз в пару недель нажимайте «Сохранить копию»: iPhone может стереть данные сайта, если Пульк долго не открывали и он не на экране «Домой». Из копии всё восстанавливается и на другом телефоне.</div>
+
+  <h3>Как видеть прогресс</h3>
+  <p>«Настройки и помощь» показывают совет на сегодня и журнал за неделю: сколько раз сказано, новые слова, дни с Пульком. Всё хранится только на этом телефоне. «Первая проверка» — что заметить в первые 10 минут и поле для заметок; кнопка «Скопировать заметки» — чтобы отправить их специалисту.</p>
+
+<div class="nav"><a href="polzovatelyu.html">Пользователю</a><a href="pedagogam.html">Педагогу</a><a href="./">Скачать Пульк</a></div>
+</main>
+<script src="pulk-sound.js"></script>
+</body>
+</html>
