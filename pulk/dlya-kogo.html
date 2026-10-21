@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="darkreader-lock">
+<title>Пульк — кому и как помогает</title>
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root { --bg: #0D1215; --panel: #141B1F; --line: #29343A; --fg: #E4EBEE; --muted: #8B9AA2; --accent: #55BAD7; --accent-fg: #06222B; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 620px; margin: 0 auto; padding-block: 32px 48px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; gap: 16px; align-items: center; }
+  header img { width: 64px; height: 64px; border-radius: 16px; }
+  h1 { margin: 0; font-size: 30px; line-height: 1.1; text-wrap: balance; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  h2 { font-size: 19px; margin: 32px 0 8px; }
+  p, li { color: var(--fg); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .get { display: block; margin: 24px 0 8px; padding: 16px; border-radius: 14px; background: var(--accent); color: var(--accent-fg); text-align: center; font-weight: 700; font-size: 18px; text-decoration: none; }
+  ol { padding-left: 22px; } li { margin: 6px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+  code { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="">
+    <div><h1>Кому и как помогает</h1><p class="sub">Пульк — клавиатура для тех, кому обычная неудобна</p></div>
+  </header>
+  <h2>Незрячим и слабовидящим</h2>
+  <div class="card"><ul><li>Печатать, не глядя: буква выбирается направлением смаха, а не точкой на экране — искать клавишу не нужно.</li><li>Звуковой компас: пока ведёшь палец, слышно, какая буква выйдет. Можно поправиться до того, как отпустил.</li><li>У каждого направления своя нота, у каждого жеста — своя вибрация.</li><li>Работает с TalkBack: буквы и слова говорит сам экранный диктор.</li><li>Тема «Контраст» и крупный размер — для тех, кто видит, но плохо.</li></ul></div>
+  <p class="muted"><b>Как включить:</b></p>
+  <ul class="muted"><li>Настройки → Ещё → «Вслепую» и «Звуковой компас: Голос».</li><li>Обучение → «Три дня» или «Не глядя».</li><li>Для слабого зрения: Настройки → Тема «Контраст», размер побольше.</li></ul>
+  <h2>Людям с особенностями моторики</h2>
+  <div class="card"><ul><li>Одна рука и один большой палец: всё в дуге, куда палец достаёт без напряжения; для левой руки — зеркально.</li><li>Настройка под руку за 30 секунд: длина смахов, дрожь и куда палец на самом деле ведёт.</li><li>Фильтр дрожи по научному методу (1€ filter) — случайные движения не становятся буквами.</li><li>«Два касания» — совсем без смахов: коснись лепестка, потом буквы.</li><li>«Сканирование» — для тех, кто может нажать только одну кнопку: клавиатура сама подсвечивает буквы, нажатие — любое касание или внешняя кнопка.</li><li>Никаких действий по таймеру: можно думать сколько угодно.</li></ul></div>
+  <p class="muted"><b>Как включить:</b></p>
+  <ul class="muted"><li>Главная → «Под мою руку».</li><li>Если смахивать трудно: Настройки → Способ набора → «Два касания».</li><li>Одна кнопка: Настройки → «Одна кнопка» → «Сканирование», скорость — медленно.</li></ul>
+  <h2>Людям с РАС (аутизмом)</h2>
+  <div class="card"><ul><li>Предсказуемо: одно правило на всё — направление даёт букву; ⌫ сразу после любого действия клавиатуры его отменяет.</li><li>Ничего не меняется само и не мигает; анимация сдержанная, звуки можно выключить совсем.</li><li>Обучение без оценок, без красного и без слова «ошибка»; видно, где ты и сколько осталось.</li><li>Простой режим: только буквы, пробел, стирание и одна подсказка — ничего лишнего на экране.</li><li>Сложные жесты не появляются внезапно — их предлагают по одному, и можно отказаться.</li></ul></div>
+  <p class="muted"><b>Как включить:</b></p>
+  <ul class="muted"><li>Настройки → «Простой режим».</li><li>Настройки → Звук «Без звука»; Ещё → Звук «пульк» — «Выкл»; при желании — Вибрация «Выкл».</li><li>Обучение → «Три дня»: по 3–5 минут, с перерывами.</li></ul>
+  <h2>Людям с СДВГ</h2>
+  <div class="card"><ul><li>Короткие занятия по 3–5 минут — «Три дня» — и быстрый первый успех.</li><li>«Толчки»: целое слово одним касанием — в темпе мысли, без отрыва пальца.</li><li>Подсказки слов и следующего слова: меньше набирать — меньше отвлекаться.</li><li>⌫ сразу после — вернуть как было: ошибка не сбивает с мысли.</li><li>Простой режим убирает всё, что тянет внимание.</li></ul></div>
+  <p class="muted"><b>Как включить:</b></p>
+  <ul class="muted"><li>Обучение → «Три дня».</li><li>Настройки → Способ набора → «Толчки» (когда освоишь «Пульс»).</li><li>Настройки → «Простой режим», если отвлекает лишнее.</li></ul>
+  <div class="card">Мы пока проверяли Пульк на компьютере и на себе. Если ты из одной из этих групп — твой отзыв очень поможет сделать клавиатуру лучше.</div>
+  <a class="get" href="./">← Скачать Пульк</a>
+</main>
+<script src="pulk-sound.js"></script>
+</body>
+</html>
