@@ -519,10 +519,14 @@
     say(t); remember(t); text = ''; lastFix = null;
     if (tab === 'speak') { talk('me', t); if (talking) talkScreen(); else speakScreen(true); } else render();
   }
-  function showBig(t) { t = t || lastSaid || ''; var b = $('bigText'); b.textContent = t; b.style.fontSize = (t.length < 16 ? 60 : t.length < 50 ? 42 : 30) + 'px'; $('big').style.display = 'flex'; }
+  function showBig(t) {
+    t = t || lastSaid || ''; var b = $('bigText'); b.textContent = t; b.style.fontSize = (t.length < 16 ? 60 : t.length < 50 ? 42 : 30) + 'px'; $('big').style.display = 'flex';
+    if (!bigOpen) { bigOpen = true; try { window.history.pushState({ pulk: 'big' }, ''); } catch (x) {} }   // «назад» closes the big phrase
+  }
   var afterBig = null;
+  function closeBig() { bigOpen = false; $('big').style.display = 'none'; var f = afterBig; afterBig = null; if (f) f(); }
   $('flip').onclick = function () { $('big').classList.toggle('flip'); };
-  $('back').onclick = function () { $('big').style.display = 'none'; var f = afterBig; afterBig = null; if (f) f(); };
+  $('back').onclick = function () { if (bigOpen) window.history.back(); else closeBig(); };
 
   // ---- the pond ----
   function drops() { return store.get('drops', 0); }
@@ -539,6 +543,28 @@
     var f = document.createElement(multi ? 'textarea' : 'input'); if (multi) f.rows = 3; else f.type = 'text';
     f.value = value; f.placeholder = placeholder; f.oninput = function () { onInput(f.value); }; return f;
   }
+  // «Назад»: the phone's back gesture (and the browser's button) goes to the previous screen of Пульк, not off the
+  // page. Each screen marks itself; a screen already on the way back is returned to, not stacked again
+  // (window.history: inside this file, history() is the list of said phrases)
+  var visited = [], restoring = false, ignorePops = 0, bigOpen = false;
+  function screenAt(name, show) {
+    var e = { name: name, show: show, tab: tab, welcome: document.body.classList.contains('welcome') };
+    if (restoring) { visited[visited.length - 1] = e; return; }
+    for (var i = visited.length - 1; i >= 0 && visited[i].name !== name; i--) {}
+    if (i >= 0) { var drop = visited.length - 1 - i; visited.length = i + 1; visited[i] = e; if (drop) { ignorePops++; window.history.go(-drop); } return; }
+    visited.push(e);
+    if (visited.length > 1) try { window.history.pushState({ pulk: visited.length }, ''); } catch (x) {}
+  }
+  window.addEventListener('popstate', function () {
+    if (ignorePops) { ignorePops--; return; }
+    if (bigOpen) { closeBig(); return; }
+    if (visited.length < 2) return;
+    visited.pop(); var e = visited[visited.length - 1];
+    tab = e.tab; if (tab !== 'speak') letSleep();
+    document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tab === tab); });
+    document.body.classList.toggle('welcome', e.welcome);
+    restoring = true; try { e.show(); } finally { restoring = false; }
+  });
   function begin(mode) {   // every screen starts clean: no guide, no game, no leftover action or Enter
     talking = false; game = null; probe = null; document.body.classList.remove('talking');
     var s = $('screen'); s.innerHTML = ''; chipMode = mode || 'none'; chipAction = null; onEnter = null; guided = null; showGuide(null); return s;
@@ -571,6 +597,7 @@
   var sitName = null;
   function speakScreen(top) {
     var s = begin('speak'); if (top === true) s.scrollTop = 0;
+    screenAt('speak', function () { speakScreen(true); });
     // a choice the adult offered: big, first, said with one touch; a family photo shows on its option
     var ch = store.get('choice', null);
     if (ch && ch.opts && ch.opts.length) {
@@ -654,6 +681,7 @@
   // autistic children follow written words more easily than spoken ones, and the feed shows whose turn it is
   function talkScreen() {
     var s = begin('speak'); talking = true; document.body.classList.add('talking');
+    screenAt('talk', talkScreen);
     var top = row();
     top.appendChild(btn('← Говорить', '', function () { speakScreen(true); }));
     top.appendChild(btn('Новый разговор', 'quiet', function () { store.set('talk', []); talkScreen(); }));
@@ -786,6 +814,7 @@
   function welcomeScreen() {
     document.body.classList.add('welcome');
     var s = begin(); s.scrollTop = 0;
+    screenAt('welcome', welcomeScreen);
     var top = h('div', '', 'hello'), img = document.createElement('img'); img.src = '../icon.png'; img.alt = '';
     top.appendChild(img); var tt = document.createElement('div'); tt.appendChild(h('h1', 'Пульк'));
     tt.appendChild(h('p', 'Печатай одним пальцем — телефон скажет вслух.', 'note')); top.appendChild(tt);
@@ -806,6 +835,7 @@
   function doorScreen(i, d) {
     if (i >= DOORS.length) { applyDoors(d); summaryScreen(d); return; }
     var s = begin(); s.scrollTop = 0; var door = DOORS[i];
+    screenAt('door' + i, function () { doorScreen(i, d); });
     s.appendChild(dots(DOORS.length, i, 'вопрос ' + (i + 1) + ' из ' + DOORS.length));
     s.appendChild(h('h1', door.title));
     s.appendChild(h('p', door.note, 'note'));
@@ -815,6 +845,7 @@
   function summaryScreen(d) {
     document.body.classList.add('welcome');   // still before the keyboard
     var s = begin(); s.scrollTop = 0;
+    screenAt('summary', function () { summaryScreen(d); });
     var on = comfortSummary();
     s.appendChild(h('h1', d.hands === undefined ? 'Можно начинать' : 'Готово — подстроено'));
     s.appendChild(h('p', on.length ? 'Включено: ' + on.join(', ') + '.' : 'Обычные настройки — их можно поменять в «Удобстве».', 'note'));
@@ -844,6 +875,7 @@
   var probe = null;
   function handCheck(back) {
     var s = begin(); s.scrollTop = 0;
+    screenAt('hand', function () { handCheck(back); });
     var dirs = [[90, 'вверх'], [0, 'вправо'], [225, 'вниз-влево'], [180, 'влево']], lens = [], jit = null;
     s.appendChild(h('h1', 'Проверить руку'));
     var say1 = h('p', '', 'note'), ok = h('div', '', 'ok'); s.appendChild(say1); s.appendChild(ok);
@@ -961,6 +993,7 @@
   // the adult's screen: what to try today, the week, a choice to offer, the family's words, own phrases, settings
   function adultScreen(focus) {
     var s = begin(); s.scrollTop = 0;
+    screenAt('adult', function () { adultScreen(); });
     s.appendChild(btn('← Вернуться', '', function () { sitName = null; speakScreen(true); }));
     s.appendChild(h('h1', 'Для взрослого'));
     var tc = h('div', '', 'card choice'); tc.appendChild(h('div', todayTip(), 'title')); s.appendChild(tc);
@@ -1079,6 +1112,7 @@
   ];
   function checkScreen(back) {
     var s = begin(); s.scrollTop = 0;
+    screenAt('check', function () { checkScreen(back); });
     s.appendChild(btn('← Вернуться', '', back));
     s.appendChild(h('h1', 'Первая проверка'));
     s.appendChild(h('p', '10 минут с ребёнком. Ничего не нужно добиваться — нужно заметить.', 'note'));
@@ -1101,6 +1135,7 @@
 
   function comfortScreen() {
     var s = begin(); s.scrollTop = 0;
+    screenAt('comfort', comfortScreen);
     s.appendChild(btn('← Вернуться', '', function () { adultScreen(); }));
     s.appendChild(h('h1', 'Удобство'));
     var on = comfortSummary();
@@ -1148,6 +1183,7 @@
   function almost(a, b) { a = norm(a); b = norm(b); if (a === b) return true; if (Math.abs(a.length - b.length) > 1) return false; var d = 0, i = 0, j = 0; while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue; } if (++d > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; } } return d + (a.length - i) + (b.length - j) <= 1; }
   function lessonScreen() {
     var s = begin();
+    screenAt('lesson', lessonScreen);
     if (step >= LESSON.length) {
       store.set('lessonDone', true);
       s.appendChild(h('h1', 'Ты умеешь говорить с Пульком'));
@@ -1209,6 +1245,7 @@
   var ROUND = 10;
   function gameScreen() {
     var s = begin(); lang = 'ru'; symbols = false; shiftOnce = false; text = '';
+    screenAt('game', gameScreen);
     var lv = gameLevel();
     game = { letter: nextLetter(''), miss: 0, n: 0, level: lv };
     s.appendChild(h('h1', 'Пузыри'));
@@ -1254,6 +1291,7 @@
   function fits(a, task) { if (!task.keys.length) return !!a.trim(); var n = norm(a); return task.keys.some(function (k) { return n.indexOf(norm(k)) >= 0; }) || almost(a, task.model); }
   function drillsScreen() {
     var s = begin();
+    var th0 = theme, at0 = at; screenAt(theme < 0 ? 'drills' : 'drill', function () { theme = th0; at = at0; drillsScreen(); });
     if (theme < 0) {
       s.appendChild(h('h1', 'Тренировки'));
       s.appendChild(h('p', 'Короткие жизненные ситуации. Читаешь — отвечаешь: печатаешь звездой или выбираешь. Телефон говорит ответ.', 'muted'));
@@ -1335,6 +1373,7 @@
   ];
   function parentsScreen(back) {
     var s = begin(); s.scrollTop = 0;
+    screenAt('parents', function () { parentsScreen(back); });
     s.appendChild(btn('← Вернуться', '', back));
     s.appendChild(h('h1', 'Для взрослого рядом'));
     s.appendChild(h('p', 'Пульк — способ говорить: ребёнок печатает одним пальцем, телефон произносит. Заранее ничего знать не нужно.', 'note'));
@@ -1349,6 +1388,7 @@
 
   function pondScreen() {
     var s = begin(), n = drops();
+    screenAt('pond', pondScreen);
     s.appendChild(h('h1', 'Мой пруд'));
     s.appendChild(h('div', 'Капель: ' + n, 'ok'));
     var w = Math.min(window.innerWidth - 32, 420), hh = 200, cx = w / 2, cy = hh / 2, r = hh / 2 - 6;
@@ -1379,5 +1419,5 @@
   else document.querySelector('#tabs button[data-tab="' + (store.get('lessonDone', false) ? 'speak' : 'lesson') + '"]').click();
   // for checks on a computer
   window.PULK_WEB = { resolve: resolve, table: table, spot: spot, PH: PH, hit: hit, text: function () { return text; }, lastSaid: function () { return lastSaid; },
-    words: function () { return words(); }, backupData: backupData, applyBackup: applyBackup, voices: voices, userWords: userWords, geo: function () { return { K: K, CX: CX, CY: CY, W: W, left: left }; } };
+    words: function () { return words(); }, backupData: backupData, applyBackup: applyBackup, voices: voices, userWords: userWords, geo: function () { return { K: K, CX: CX, CY: CY, W: W, left: left }; }, screens: function () { return visited.map(function (e) { return e.name; }); } };
 })();
