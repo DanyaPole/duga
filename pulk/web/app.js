@@ -184,7 +184,7 @@
     var g = guided; guided = null; showGuide(null); render(); g.done();
   }
   function typeLetter(v) { text += caps() && !symbols ? v.toUpperCase() : v; shiftOnce = false; render(); }
-  function space() { text += ' '; render(); }
+  function space() { text += ' '; render(); sayWord(); }
   function backspace() { text = text.slice(0, -1); render(); }
   function enter() { if (onEnter) onEnter(); }
   var onEnter = null;
@@ -253,14 +253,14 @@
     }
     return [];
   }
-  function takeWord(s) { var w = currentWord(); text = text.slice(0, text.length - w.length) + s + ' '; render(); }
+  function takeWord(s) { var w = currentWord(); text = text.slice(0, text.length - w.length) + s + ' '; render(); sayWord(); }
 
   // phrases: own first, then ready; a few first letters (or first letters of words) bring a whole phrase
   function norm(s) { return s.toLowerCase().replace(/ё/g, 'е').trim(); }
   function completePhrase(typed) {
     var t = norm(typed); if (t.length < 2) return [];
     var all = [], seen = {};
-    history().concat(D.situations.reduce(function (a, s) { return a.concat(s[1]); }, []), D.quick).forEach(function (p) { var k = norm(p); if (!seen[k]) { seen[k] = 1; all.push(p); } });
+    mine().concat(history(), D.situations.reduce(function (a, s) { return a.concat(s[1]); }, []), D.day.reduce(function (a, d) { return a.concat(d[2]); }, []), D.quick).forEach(function (p) { var k = norm(p); if (!seen[k]) { seen[k] = 1; all.push(p); } });
     var starts = all.filter(function (p) { return norm(p).indexOf(t) === 0 && norm(p) !== t; });
     var pieces = t.split(' ').filter(Boolean);
     var byWords = pieces.length < 2 ? [] : all.filter(function (p) {
@@ -275,32 +275,45 @@
   function paintChips() {
     var box = $('chips'); box.innerHTML = ''; if (!$('text')) return;
     // the screen's main action sits here, just above the star — under the thumb, never scrolled away
-    if (chipAction) box.appendChild(btn(chipAction.label, 'main', chipAction.fn));
+    if (chipAction && (!chipAction.ifText || text.trim())) box.appendChild(btn(chipAction.label, 'main', chipAction.fn));
     if (guided) return;
-    if (chipMode === 'speak') completePhrase(text).forEach(function (p, i) {
-      var b = document.createElement('button'); b.textContent = p; if (i === 0) b.className = 'main';
+    var shown = {};
+    if (chipMode === 'speak') completePhrase(text).forEach(function (p) {
+      shown[norm(p)] = 1; var b = document.createElement('button'); b.textContent = p;
       b.onclick = function () { text = p; render(); sayAll(); }; box.appendChild(b);
     });
-    wordChips().forEach(function (s) { var b = document.createElement('button'); b.textContent = s; b.onclick = function () { takeWord(s); }; box.appendChild(b); });
+    wordChips().forEach(function (s) { if (shown[norm(s)]) return; var b = document.createElement('button'); b.textContent = s; b.onclick = function () { takeWord(s); }; box.appendChild(b); });
   }
 
   // ---- the voice ----
   var lastSaid = '';
   function rate() { return store.get('rate', 1); }
-  function say(t) {
+  function voices(ru) { return window.speechSynthesis ? speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(ru ? 'ru' : 'en') === 0; }) : []; }
+  function say(t, word) {
     t = (t || '').trim(); if (!t || !window.speechSynthesis) return;
-    lastSaid = t;
+    if (!word) lastSaid = t;
     speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(t), ru = /[а-яё]/i.test(t);
     u.lang = ru ? 'ru-RU' : 'en-US'; u.rate = rate();
-    var v = speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(ru ? 'ru' : 'en') === 0; })[0];
+    var vs = voices(ru), mine = store.get('voice', ''), v = vs.filter(function (x) { return x.name === mine; })[0] || vs[0];
     if (v) u.voice = v;
     speechSynthesis.speak(u);
   }
+  // «Говорить по словам»: each finished word is said at once, so the person beside follows the phrase as it grows
+  function sayWord() { if (tab !== 'speak' || guided || !store.get('words', false)) return; var m = /([\p{L}\p{N}-]+) $/u.exec(text); if (m) say(m[1], true); }
+  // the screen stays on during a conversation: while one types an answer, the partner waits, and so must the phone
+  var wake = null;
+  function keepAwake() {
+    if (tab !== 'speak' || wake || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+    wake = 'asking';
+    navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }).catch(function () { wake = null; });
+  }
+  function letSleep() { if (wake && wake.release) wake.release(); wake = null; }
+  document.addEventListener('visibilitychange', keepAwake);
   function history() { return store.get('phrases', []); }
   function remember(t) { var h = history().filter(function (p) { return norm(p) !== norm(t); }); h.unshift(t.trim()); store.set('phrases', h.slice(0, 200)); }
-  function sayAll() { var t = text.trim(); if (!t) return; say(t); remember(t); text = ''; render(); if (tab === 'speak') speakScreen(); }
-  function showBig(t) { $('bigText').textContent = t || lastSaid || ''; $('big').style.display = 'flex'; }
+  function sayAll() { var t = text.trim(); if (!t) return; say(t); remember(t); text = ''; render(); if (tab === 'speak') speakScreen(true); }
+  function showBig(t) { t = t || lastSaid || ''; var b = $('bigText'); b.textContent = t; b.style.fontSize = (t.length < 16 ? 60 : t.length < 50 ? 42 : 30) + 'px'; $('big').style.display = 'flex'; }
   $('flip').onclick = function () { $('big').classList.toggle('flip'); };
   $('back').onclick = function () { $('big').style.display = 'none'; };
 
@@ -315,37 +328,81 @@
   function dots(n, at, label) { var d = document.createElement('div'); d.className = 'dots'; var b = document.createElement('b'); for (var i = 0; i < n; i++) b.textContent += i < at ? '●' : i === at ? '◉' : '○'; d.appendChild(b); d.appendChild(document.createTextNode(label)); return d; }
   function textBox(hint) { var t = document.createElement('div'); t.id = 'text'; t.setAttribute('data-hint', hint); return t; }
 
-  function speakScreen() {
-    var s = $('screen'); s.innerHTML = ''; chipMode = 'speak'; chipAction = null;
+  // what the person keeps: own phrases and «Про меня» (a card that introduces them to a stranger)
+  function mine() { return store.get('mine', []); }
+  function aboutMe() { return store.get('about', ''); }
+  // «Сейчас»: phrases for this part of the day (as Phrases.now in the app)
+  function dayNow() { var hr = new Date().getHours(), part = D.day[D.day.length - 1]; D.day.forEach(function (d) { if (hr >= d[1]) part = d; }); return ['Сейчас · ' + part[0], part[2]]; }
+  function situations() { return (mine().length ? [['Мои', mine()]] : []).concat([dayNow()], D.situations); }
+  var sit = null;
+  function speakScreen(top) {
+    var s = $('screen'); s.innerHTML = ''; if (top === true) s.scrollTop = 0; chipMode = 'speak'; chipAction = null;
+    // answers first: in a conversation «да», «нет», «подожди» are needed most and fastest
+    var g = document.createElement('div'); g.className = 'answers';
+    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); })); });
+    s.appendChild(g);
+    var cats = document.createElement('div'), list = document.createElement('div'), all = situations();
+    var r0 = document.createElement('div'); r0.className = 'row';
+    if (aboutMe()) { var am = btn('Про меня', 'main', function () { say(aboutMe()); showBig(aboutMe()); }); am.style.flex = '1'; r0.appendChild(am); }
+    var ur = btn('Срочно', 'urgent', function () { sit = situations().map(function (x) { return x[0]; }).indexOf('Срочно'); paintSit(); list.scrollIntoView({ block: 'nearest' }); });
+    ur.style.flex = '1'; r0.appendChild(ur);
+    s.appendChild(r0);
     s.appendChild(textBox('Печатай звездой — я скажу'));
     var r = document.createElement('div'); r.className = 'row';
-    r.appendChild(btn('Сказать', 'main', sayAll)); r.appendChild(btn('Показать', '', function () { showBig(text.trim()); })); r.appendChild(btn('Стереть', '', function () { text = ''; render(); }));
+    r.appendChild(btn('Сказать', 'main', sayAll)); r.appendChild(btn('Показать', '', function () { showBig(text.trim()); }));
+    r.appendChild(btn('★ В мои', '', function () {
+      var t = text.trim() || lastSaid; if (!t) return;
+      store.set('mine', [t].concat(mine().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 60)); sit = 0; text = ''; speakScreen(true);
+    }));
+    r.appendChild(btn('Стереть', '', function () { text = ''; render(); }));
     s.appendChild(r);
-    s.appendChild(h('h2', 'Быстро'));
-    var q = document.createElement('div'); q.className = 'scroll';
-    D.quick.forEach(function (p) { q.appendChild(btn(p, '', function () { say(p); })); }); s.appendChild(q);
     s.appendChild(h('h2', 'Фразы'));
-    var cats = document.createElement('div'); cats.className = 'scroll'; s.appendChild(cats);
-    var list = document.createElement('div'); s.appendChild(list);
-    var sit = store.get('sit', 0);
+    cats.className = 'scroll'; s.appendChild(cats); s.appendChild(list);
+    if (sit == null || sit >= all.length) sit = mine().length ? 1 : 0;   // «Сейчас» by default; own phrases are one touch left
     function paintSit() {
-      cats.innerHTML = ''; list.innerHTML = '';
-      D.situations.forEach(function (x, i) { cats.appendChild(btn((i === sit ? '✓ ' : '') + x[0], i === sit ? 'main' : '', function () { sit = i; store.set('sit', i); paintSit(); })); });
-      D.situations[sit][1].forEach(function (p) { list.appendChild(btn(p, 'wide', function () { say(p); remember(p); })); });
+      all = situations(); cats.innerHTML = ''; list.innerHTML = '';
+      all.forEach(function (x, i) { cats.appendChild(btn((i === sit ? '✓ ' : '') + x[0], i === sit ? 'main' : '', function () { sit = i; paintSit(); })); });
+      all[sit][1].forEach(function (p) {
+        var row = document.createElement('div'); row.className = 'line';
+        row.appendChild(btn(p, 'wide', function () { say(p); remember(p); }));
+        if (all[sit][0] === 'Мои') row.appendChild(btn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); if (!mine().length) sit = 0; paintSit(); }));
+        list.appendChild(row);
+      });
     }
     paintSit();
     s.appendChild(h('h2', 'Сказано'));
     var hist = history().slice(0, 8);
     if (!hist.length) s.appendChild(h('p', 'Здесь появятся сказанные фразы — касание повторит.', 'muted'));
     hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); })); });
-    s.appendChild(h('h2', 'Настройки'));
+
+    s.appendChild(h('h2', 'Голос'));
+    var vr = document.createElement('div'); vr.className = 'row'; s.appendChild(vr);
+    function paintVoices() {
+      vr.innerHTML = ''; var vs = voices(true), cur = store.get('voice', '') || (vs[0] && vs[0].name);
+      if (!vs.length) vr.appendChild(h('p', 'Русский голос не найден. На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский.', 'muted'));
+      vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, ''), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
+    }
+    paintVoices();
+    if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function () { if (tab === 'speak' && vr.isConnected) paintVoices(); };
     var st = document.createElement('div'); st.className = 'row';
-    st.appendChild(btn('Рука: ' + (left ? 'левая' : 'правая'), '', function () { left = !left; store.set('hand', left ? 'left' : 'right'); layout(); speakScreen(); }));
     [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]].forEach(function (x) { st.appendChild(btn((rate() === x[1] ? '✓ ' : '') + x[0], rate() === x[1] ? 'main' : '', function () { store.set('rate', x[1]); speakScreen(); })); });
     s.appendChild(st);
-    s.appendChild(btn('Для взрослого рядом', 'wide', function () { parentsScreen(speakScreen); }));
-    s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать. 🔊 — сказать ещё раз.', 'muted'));
-    onEnter = sayAll; render();
+    var words = store.get('words', false);
+    s.appendChild(btn((words ? '✓ ' : '') + 'Говорить по словам, пока печатаю', words ? 'main wide' : 'wide', function () { store.set('words', !words); speakScreen(); }));
+
+    s.appendChild(h('h2', 'Для взрослого'));
+    s.appendChild(h('p', '«Про меня» — то, что человек показывает и говорит незнакомым. Напишите обычной клавиатурой:', 'muted'));
+    var ta = document.createElement('textarea'); ta.rows = 3; ta.value = aboutMe();
+    ta.placeholder = 'Меня зовут Миша. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.';
+    ta.oninput = function () { store.set('about', ta.value.trim()); };
+    ta.onblur = function () { if (tab === 'speak') speakScreen(); };
+    s.appendChild(ta);
+    var hr = document.createElement('div'); hr.className = 'row';
+    hr.appendChild(btn('Рука: ' + (left ? 'левая' : 'правая'), '', function () { left = !left; store.set('hand', left ? 'left' : 'right'); layout(); speakScreen(); }));
+    hr.appendChild(btn('Как помочь', '', function () { parentsScreen(speakScreen); }));
+    s.appendChild(hr);
+    s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать. 🔊 — сказать ещё раз. Работает и без интернета, если страница открывалась хотя бы раз.', 'muted'));
+    onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
   }
 
   // «Учимся говорить»: tiny steps, one new thing each, nothing can go wrong. Letters come with a guide on the star:
@@ -500,7 +557,7 @@
 
   var SCREENS = { speak: speakScreen, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
   document.querySelectorAll('#tabs button').forEach(function (b) {
-    b.onclick = function () { guided = null; showGuide(null); chipAction = null; tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); SCREENS[tab](); };
+    b.onclick = function () { guided = null; showGuide(null); chipAction = null; tab = b.dataset.tab; $('screen').scrollTop = 0; if (tab !== 'speak') letSleep(); document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); SCREENS[tab](); };
   });
   window.addEventListener('resize', function () { layout(); });
   layout();

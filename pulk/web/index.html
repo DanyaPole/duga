@@ -14,9 +14,9 @@
 <style>
   /* the design system «Пульк»: light and dark */
   :root { --bg: #EEF3F5; --panel: #FFFFFF; --ink: #0F1E26; --muted: #4A5B64; --accent: #0A6680; --on-accent: #FFFFFF;
-    --line: #7F929C; --petal: #FFFFFF; --press: #CFE8F0; --zone: #E6F3F7; --glass: rgba(15,30,38,0.08); color-scheme: light; }
+    --line: #7F929C; --petal: #FFFFFF; --press: #CFE8F0; --zone: #E6F3F7; --glass: rgba(15,30,38,0.08); --urgent: #A8321F; color-scheme: light; }
   @media (prefers-color-scheme: dark) { :root { --bg: #0B1114; --panel: #1B262C; --ink: #EDF3F6; --muted: #A3B4BC; --accent: #4CC2DE; --on-accent: #032029;
-    --line: #5E737D; --petal: #1B262C; --press: #244A5B; --zone: #1E3944; --glass: rgba(255,255,255,0.08); color-scheme: dark; } }
+    --line: #5E737D; --petal: #1B262C; --press: #244A5B; --zone: #1E3944; --glass: rgba(255,255,255,0.08); --urgent: #FF8A75; color-scheme: dark; } }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { touch-action: manipulation; }
   body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -37,6 +37,12 @@
   button.main { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; }
   button.wide { width: 100%; margin-top: 8px; }
   .scroll button { flex: 0 0 auto; }
+  .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .answers button { min-height: 52px; padding: 0 4px; font-weight: 600; }
+  button.urgent { color: var(--urgent); border-color: var(--urgent); font-weight: 700; }
+  .line { display: flex; gap: 6px; align-items: flex-end; } .line .wide { flex: 1; }
+  button.x { min-width: 48px; padding: 0; color: var(--muted); }
+  textarea { width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; -webkit-user-select: text; user-select: text; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; }
   .ok { color: var(--accent); font-weight: 700; min-height: 24px; margin-top: 8px; }
   #chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px max(12px, env(safe-area-inset-left, 0px)); min-height: 60px; align-items: center; scrollbar-width: none; }
@@ -63,5 +69,15 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script src="../pulk-sound.js"></script>
+<script>
+  // without internet too: the site's service worker keeps Пульк's files after the first visit (a shop, a metro, a hospital)
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', function () {
+    var files = ['./', 'index.html', 'data.js', 'app.js', 'next_ru.txt', '../../dict_ru.txt', '../icon.png', '../pulk-sound.js'];
+    function warm() { files.forEach(function (u) { fetch(u).catch(function () {}); }); }
+    navigator.serviceWorker.register('../../sw.js', { scope: '../../' }).then(function () {
+      if (navigator.serviceWorker.controller) warm(); else navigator.serviceWorker.addEventListener('controllerchange', warm, { once: true });
+    }).catch(function () {});
+  });
+</script>
 </body>
 </html>
