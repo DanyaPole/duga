@@ -81,6 +81,10 @@
   @keyframes wobble { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   @media (prefers-reduced-motion: reduce) { .bubble-l, .bubble-l.wobble { animation: none; } .bubble-l.pop { animation-duration: .01s; } }
   .warn { color: var(--urgent); font-size: 14px; margin: 6px 0; }
+  /* «Крупный текст» */
+  body.big-text #screen { font-size: 19px; } body.big-text h1 { font-size: 27px; } body.big-text #text { font-size: 32px; }
+  body.big-text button { font-size: 18px; } body.big-text .muted, body.big-text .note { font-size: 17px; }
+  button.answer { min-height: 60px; font-size: 19px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; }
   .ok { color: var(--accent); font-weight: 700; min-height: 24px; margin-top: 8px; }
   #chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px max(12px, env(safe-area-inset-left, 0px)); min-height: 60px; align-items: center; scrollbar-width: none; }

@@ -266,9 +266,9 @@
     e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (x) {}
     if (touch) return;   // one thumb: a second finger is ignored
     var b = point(e), now = Date.now();
-    if (now - lastEnd < guardGap()) { touch = { id: e.pointerId, ignored: true }; return; }   // a bounce
+    if (!probe && now - lastEnd < guardGap()) { touch = { id: e.pointerId, ignored: true }; return; }   // a bounce
     touch = { id: e.pointerId, key: hit(b[0], b[1]), pts: [b[0], b[1]], trail: [xy(scr(b[0], b[1]))], still: now, start: now, ax: b[0], ay: b[1], shown: '' };
-    if (!touch.key) touch.steady = new Steady(b[0], b[1]);
+    if (!touch.key && !probe) touch.steady = new Steady(b[0], b[1]);
     if (!touch.key && jabsOn()) touch.jabs = new Jabs(b[0], b[1]);
     if (touch.key && touch.key.fn === 'bksp' && !guided) {
       // with the guard on, ⌫ waits for the finger to be sure (on release); held, it repeats either way
@@ -306,11 +306,12 @@
     if (!touch || touch.id !== e.pointerId) return;
     var t = touch; touch = null;
     if (t.ignored) return;
-    var tooShort = Date.now() - t.start < guardMin(); lastEnd = Date.now();
+    var tooShort = !probe && Date.now() - t.start < guardMin(); lastEnd = Date.now();   // the hand check measures every touch
     clearTimeout(t.rep); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden');
     if (relayout) { relayout = false; layout(true); }
     if (cancelled || tooShort) return;
     if (t.key && t.key.fn === 'bksp') { if (guardMin() && !t.repeated && !guided) backspace(); return; }
+    if (probe && !t.key) { probe(t); return; }
     if (guided) { guidedStroke(t); return; }
     if (game && !t.key) { gameStroke(t); return; }
     if (t.jabs) { var last = t.jabs.finish(); if (last) typeLetter(jab(table(), last).v); space(); return; }
@@ -522,7 +523,7 @@
     f.value = value; f.placeholder = placeholder; f.oninput = function () { onInput(f.value); }; return f;
   }
   function begin(mode) {   // every screen starts clean: no guide, no game, no leftover action or Enter
-    talking = false; game = null; document.body.classList.remove('talking');
+    talking = false; game = null; probe = null; document.body.classList.remove('talking');
     var s = $('screen'); s.innerHTML = ''; chipMode = mode || 'none'; chipAction = null; onEnter = null; guided = null; showGuide(null); return s;
   }
 
@@ -613,6 +614,16 @@
       hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); talk('me', p); })); });
     }
     s.appendChild(h('h2', 'Для взрослого'));
+    if (store.get('doors', null) === 'quick' && !store.get('offered', false)) {
+      var st0 = store.get('letters', {}), misses = Object.keys(st0).reduce(function (a, k) { return a + (st0[k][1] || 0); }, 0);
+      if (misses >= 15) {
+        var oc = h('div', '', 'card choice'); s.appendChild(oc);
+        oc.appendChild(h('div', 'Звезда иногда промахивается. Подстроить под руку — 30 секунд?', 'title'));
+        var orow = row(); oc.appendChild(orow);
+        orow.appendChild(btn('Подстроить', 'main', function () { store.set('offered', true); handCheck(function () { speakScreen(true); }); }));
+        orow.appendChild(btn('Не предлагать', '', function () { store.set('offered', true); speakScreen(); }));
+      }
+    }
     if (iosBrowser && hasOwnData()) s.appendChild(h('p', 'Пульк открыт в Safari: добавьте его на экран «Домой», чтобы слова и фото не пропали. Копия — в «Настройки и помощь».', 'warn'));
     var ar = row();
     ar.appendChild(btn('Предложить выбор', '', function () { adultScreen('choice'); }));
@@ -713,7 +724,43 @@
     f.click();
   }
 
-  // the first visit: a calm page before the keyboard — the hand, the voice, a name; then a lesson or straight to speaking
+  // ---- the first visit (as WizardActivity in the app): the hand and the voice, then a fork — «Начать сразу» or
+  // «Подстроить под человека». Five doors, asked as difficulties, never as diagnoses; «Не знаю» is always safe. ----
+  var DOORS = [
+    { key: 'hands', title: 'Рука дрожит, задевает экран или быстро устаёт?', note: 'Подстроим, как звезда принимает касания.',
+      answers: [['Нет', 0], ['Немного', 1], ['Да, смахивать трудно', 2], ['Не знаю', 'u']] },
+    { key: 'eyes', title: 'Трудно видеть буквы на экране?', note: 'Сделаем крупнее.',
+      answers: [['Нет', 0], ['Да', 1], ['Совсем не видно', 2], ['Не знаю', 'u']] },
+    { key: 'speech', title: 'Говорить голосом трудно?', note: 'Тогда главное — «Говорить»: телефон произносит набранное.',
+      answers: [['Нет', 0], ['Да', 1], ['Не знаю', 'u']] },
+    { key: 'calm', title: 'Мешают лишние кнопки, звуки, движение?', note: 'Оставим только нужное, звук и голос — мягче.',
+      answers: [['Нет', 0], ['Да', 1], ['Не знаю', 'u']] },
+    { key: 'helper', title: 'Рядом будет взрослый, который помогает?', note: 'Покажем ему минутную памятку.',
+      answers: [['Да', 1], ['Нет', 0]] },
+  ];
+  // what each answer turns on; «Не знаю» turns on only what never gets in the way
+  function applyDoors(d) {
+    if (d.hands === 1 || d.hands === 'u') { store.set('guard', 1); if (d.hands === 1) store.set('smooth', 1); }
+    if (d.hands === 2) { store.set('guard', 2); store.set('smooth', 2); store.set('bigStar', true); }
+    if (d.eyes === 1 || d.eyes === 2) { store.set('bigStar', true); store.set('bigText', true); }
+    if (d.calm === 1) store.set('calm', true);
+    store.set('doors', d); layout(true); applyLook();
+  }
+  function applyLook() { document.body.classList.toggle('big-text', !!store.get('bigText', false)); }
+  // what is on now, in words — the summary after the doors and the head of «Удобство»
+  function comfortSummary() {
+    var on = [];
+    if (left) on.push('левая рука');
+    var g = store.get('guard', 0); if (g) on.push('защита от случайных касаний' + (g === 2 ? ' (сильная)' : ''));
+    var sm = store.get('smooth', 0); if (sm) on.push('сглаживание дрожи' + (sm === 2 ? ' (сильное)' : ''));
+    var tl = store.get('tol', 1); if (tl !== 1) on.push(tl < 1 ? 'короткий смах' : 'длинный смах');
+    if (store.get('bigStar', false)) on.push('крупная звезда');
+    if (store.get('bigText', false)) on.push('крупный текст');
+    if (store.get('calm', false)) on.push('спокойный режим');
+    if (store.get('mode', 'pulse') === 'jabs') on.push('«Толчки»');
+    if (store.get('words', false)) on.push('говорить по словам');
+    return on;
+  }
   function welcomeScreen() {
     document.body.classList.add('welcome');
     var s = begin(); s.scrollTop = 0;
@@ -721,35 +768,87 @@
     top.appendChild(img); var tt = document.createElement('div'); tt.appendChild(h('h1', 'Пульк'));
     tt.appendChild(h('p', 'Печатай одним пальцем — телефон скажет вслух.', 'note')); top.appendChild(tt);
     s.appendChild(top);
-
     var c1 = h('div', '', 'card'); s.appendChild(c1);
-    c1.appendChild(h('h2', '1. Какой рукой?'));
+    c1.appendChild(h('h2', 'Какой рукой?'));
     c1.appendChild(h('p', 'Клавиатура встанет под большой палец этой руки.', 'note'));
     c1.appendChild(handButtons());
-
-    var c2 = h('div', '', 'card'); s.appendChild(c2);
-    c2.appendChild(h('h2', '2. Голос'));
-    c2.appendChild(h('p', 'Включите звук и послушайте. Так телефон будет говорить ваши слова.', 'note'));
-    c2.appendChild(btn('🔊 Послушать', 'main wide', function () { say('Привет! Это мой голос. Я скажу всё, что ты напечатаешь.', true); }));
-    voiceControls(c2);
-
-    var c3 = h('div', '', 'card'); s.appendChild(c3);
-    c3.appendChild(h('h2', '3. Как тебя зовут?'));
-    c3.appendChild(h('p', 'Можно пропустить. Из имени получится карточка «Про меня» — её можно показать незнакомым.', 'note'));
-    var name = '';
-    c3.appendChild(field('', 'Имя', function (v) { name = v.trim(); }));
-
+    c1.appendChild(btn('🔊 Послушать голос', 'wide', function () { say('Привет! Это мой голос. Я скажу всё, что ты напечатаешь.', true); }));
+    s.appendChild(btn('Начать сразу', 'main wide', function () { store.set('doors', 'quick'); summaryScreen({}); }));
+    s.appendChild(h('p', 'Обычные настройки. Подстроить можно потом: «Настройки и помощь» → «Удобство».', 'muted'));
+    s.appendChild(btn('Подстроить под человека — 2 минуты', 'wide', function () { doorScreen(0, {}); }));
+    s.appendChild(h('p', 'Пять вопросов о том, что трудно и что мешает. Настраиваете для ребёнка или ученика — выберите это.', 'muted'));
+    var tip = 'Набранное остаётся на телефоне.';
+    if (iosBrowser) tip += ' Чтобы открывать как приложение: «Поделиться» → «На экран „Домой“».';
+    s.appendChild(h('p', tip, 'muted'));
+  }
+  function doorScreen(i, d) {
+    if (i >= DOORS.length) { applyDoors(d); summaryScreen(d); return; }
+    var s = begin(); s.scrollTop = 0; var door = DOORS[i];
+    s.appendChild(dots(DOORS.length, i, 'вопрос ' + (i + 1) + ' из ' + DOORS.length));
+    s.appendChild(h('h1', door.title));
+    s.appendChild(h('p', door.note, 'note'));
+    door.answers.forEach(function (x) { var b = btn(x[0], x[1] === 1 || x[1] === 2 ? 'wide' : 'wide', function () { d[door.key] = x[1]; doorScreen(i + 1, d); }); b.classList.add('answer'); s.appendChild(b); });
+    if (i > 0) s.appendChild(btn('← Назад', 'wide quiet', function () { doorScreen(i - 1, d); }));
+  }
+  function summaryScreen(d) {
+    document.body.classList.add('welcome');   // still before the keyboard
+    var s = begin(); s.scrollTop = 0;
+    var on = comfortSummary();
+    s.appendChild(h('h1', d.hands === undefined ? 'Можно начинать' : 'Готово — подстроено'));
+    s.appendChild(h('p', on.length ? 'Включено: ' + on.join(', ') + '.' : 'Обычные настройки — их можно поменять в «Удобстве».', 'note'));
+    if (d.eyes === 2) s.appendChild(h('p', 'Для тех, кто не видит экран, лучше Android-версия Пулька: в ней есть звуковой компас и экранный диктор.', 'warn'));
+    if (d.hands === 1 || d.hands === 2 || d.hands === 'u') {
+      var hc = h('div', '', 'card choice'); s.appendChild(hc);
+      hc.appendChild(h('div', 'Проверить руку — 30 секунд', 'title'));
+      hc.appendChild(h('p', 'Подержать палец на звезде и сделать 4 смаха. Пульк сам подберёт сглаживание дрожи и длину смаха.', 'muted'));
+      hc.appendChild(btn('Проверить руку', 'main wide', function () { document.body.classList.remove('welcome'); handCheck(function () { summaryScreen(d); }); }));
+    }
+    s.appendChild(h('h2', 'Как тебя зовут?'));
+    s.appendChild(h('p', 'Можно пропустить. Из имени получится карточка «Про меня» — её можно показать незнакомым.', 'note'));
+    var name = ''; s.appendChild(field('', 'Имя', function (v) { name = v.trim(); }));
     function start(where) {
       if (name && !aboutMe()) store.set('about', 'Меня зовут ' + name + '. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.');
       store.set('welcomed', true); document.body.classList.remove('welcome');
-      document.querySelector('#tabs button[data-tab="' + where + '"]').click();
+      var go = function () { document.querySelector('#tabs button[data-tab="' + where + '"]').click(); };
+      if (d.helper === 1) { tab = where; parentsScreen(go); } else go();   // the adult beside reads a minute first
     }
-    s.appendChild(btn('Начать с урока — 3 минуты', 'main wide', function () { start('lesson'); }));
+    s.appendChild(btn(d.speech === 1 ? 'Учиться говорить — 3 минуты' : 'Начать с урока — 3 минуты', 'main wide', function () { start('lesson'); }));
     s.appendChild(btn('Сразу говорить', 'wide', function () { start('speak'); }));
-    s.appendChild(btn('Я взрослый рядом с ребёнком: как помочь', 'wide quiet', function () { parentsScreen(welcomeScreen); }));
-    var tip = 'Всё это можно поменять потом: «Говорить» → «Настройки и помощь». Набранное остаётся на телефоне.';
-    if (navigator.standalone === false) tip += ' Чтобы открывать как приложение: «Поделиться» → «На экран „Домой“».';
-    s.appendChild(h('p', tip, 'muted'));
+    s.appendChild(btn('← Изменить ответы', 'wide quiet', function () { doorScreen(0, {}); }));
+  }
+
+  // «Проверить руку» (as CalibrationActivity, shorter): the finger held still shows the tremor; four strokes show how
+  // long this hand's strokes are. The star listens without typing.
+  var probe = null;
+  function handCheck(back) {
+    var s = begin(); s.scrollTop = 0;
+    var dirs = [[90, 'вверх'], [0, 'вправо'], [225, 'вниз-влево'], [180, 'влево']], lens = [], jit = null;
+    s.appendChild(h('h1', 'Проверить руку'));
+    var say1 = h('p', '', 'note'), ok = h('div', '', 'ok'); s.appendChild(say1); s.appendChild(ok);
+    s.appendChild(btn('Пропустить', 'wide quiet', function () { probe = null; showGuide(null); back(); }));
+    function ask() {
+      if (jit === null) { say1.textContent = 'Положи палец на звезду и подержи неподвижно, пока не скажу «хорошо» — пару секунд.'; showGuide(null); return; }
+      if (lens.length < dirs.length) { var d0 = dirs[lens.length]; say1.textContent = 'Смахни ' + d0[1] + ', как тебе удобно (' + (lens.length + 1) + ' из 4).'; showGuide(slot(D.RU, Math.round(d0[0] / 45) % 8, 'c').v); return; }
+      probe = null; showGuide(null);
+      var avg = lens.reduce(function (a, x) { return a + x; }, 0) / lens.length;
+      store.set('smooth', jit > 3 ? 2 : jit > 1.5 ? 1 : store.get('smooth', 0));
+      store.set('tol', avg < 45 ? 0.75 : avg > 95 ? 1.4 : 1);
+      say1.textContent = 'Готово. Дрожь: ' + (jit > 3 ? 'заметная — сглаживание сильное' : jit > 1.5 ? 'небольшая — сглаживание лёгкое' : 'почти нет') + '. Смах: ' + (avg < 45 ? 'короткий — хватит маленького движения' : avg > 95 ? 'длинный — мелкие подёргивания не считаются' : 'обычный') + '.';
+      s.appendChild(btn('Дальше', 'main wide', back));
+    }
+    probe = function (t) {
+      var n = t.pts.length / 2, dur = Date.now() - t.start;
+      if (jit === null) {
+        if (dur < 1500) { ok.textContent = 'Чуть дольше — пару секунд.'; return; }
+        var mx0 = 0, my0 = 0; for (var i = 0; i < n; i++) { mx0 += t.pts[2 * i]; my0 += t.pts[2 * i + 1]; } mx0 /= n; my0 /= n;
+        var v = 0; for (var k = 0; k < n; k++) v += Math.pow(t.pts[2 * k] - mx0, 2) + Math.pow(t.pts[2 * k + 1] - my0, 2);
+        jit = Math.sqrt(v / n); ok.textContent = 'Хорошо.'; ask(); return;
+      }
+      var far = 0; for (var q = 1; q < n; q++) far = Math.max(far, Math.hypot(t.pts[2 * q] - t.pts[0], t.pts[2 * q + 1] - t.pts[1]));
+      if (far < 8) { ok.textContent = 'Это касание — нужен смах.'; return; }
+      lens.push(far); ok.textContent = ''; ask();
+    };
+    ask(); render();
   }
 
   // ---- the child's words, photos and phrases live in this browser only. Safari on iPhone may clear a site's data
@@ -844,6 +943,10 @@
     s.appendChild(h('h1', 'Для взрослого'));
     var tc = h('div', '', 'card choice'); tc.appendChild(h('div', todayTip(), 'title')); s.appendChild(tc);
     if (hasOwnData() || iosBrowser) safetyCard(s);
+    var cc = h('div', '', 'card'); s.appendChild(cc);
+    cc.appendChild(h('div', 'Удобство — под особенности человека', 'title'));
+    var on0 = comfortSummary(); cc.appendChild(h('p', on0.length ? 'Включено: ' + on0.join(', ') + '.' : 'Сейчас обычные настройки.', 'muted'));
+    cc.appendChild(btn('Открыть «Удобство»', 'main wide', function () { comfortScreen(); }));
     var w = week();
     s.appendChild(h('p', w.said ? 'За неделю: сказано ' + w.said + ' раз, новых слов — ' + w.fresh + ', дней с Пульком — ' + w.days + '. Всё это хранится только на этом телефоне.' : 'Здесь появится, сколько сказано за неделю. Хранится только на этом телефоне.', 'muted'));
 
@@ -924,36 +1027,12 @@
     s.appendChild(h('p', 'То, что ребёнок покажет и скажет незнакомым одним касанием.', 'note'));
     s.appendChild(field(aboutMe(), 'Меня зовут Миша. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.', function (v) { store.set('about', v.trim()); }, true));
 
-    s.appendChild(h('h2', 'Голос'));
-    voiceControls(s);
-    s.appendChild(toggle('Говорить по словам, пока печатаю', 'words', false));
-
-    s.appendChild(h('h2', 'Способ набора'));
-    s.appendChild(h('p', '«Пульс» — смах на каждую букву. «Толчки» — целое слово одним касанием: палец на звезде, толчок к букве и назад, следующая буква, поднял палец — пробел. Включайте, когда «Пульс» освоен.', 'note'));
-    var mr = row('pair'); s.appendChild(mr);
-    function paintMode() {
-      mr.innerHTML = '';
-      [['Пульс', 'pulse'], ['Толчки', 'jabs']].forEach(function (x) { var on = store.get('mode', 'pulse') === x[1]; mr.appendChild(btn((on ? '✓ ' : '') + x[0], on ? 'main' : '', function () { store.set('mode', x[1]); paintMode(); })); });
-    }
-    paintMode();
-
-    s.appendChild(h('h2', 'Удобство'));
-    s.appendChild(handButtons());
-    s.appendChild(toggle('Крупная звезда — больше места для пальца', 'bigStar', false, function () { layout(true); }));
-    s.appendChild(toggle('Звук «пульк» на каждую букву', 'tick', true));
-    s.appendChild(toggle('Спокойный режим: меньше кнопок, мягче голос, без звука букв', 'calm', false));
-    s.appendChild(h('h2', 'Если рука дрожит или задевает экран'));
-    pick(s, 'Защита от случайных касаний', 'guard', 0, [['Нет', 0], ['Слабая', 1], ['Сильная', 2]], 'Короткие задевания и повторные «дребезжащие» касания не станут буквами.');
-    pick(s, 'Сгладить дрожь', 'smooth', 0, [['Нет', 0], ['Слегка', 1], ['Сильно', 2]], 'Дрожь сглаживается, когда палец движется медленно; быстрый смах не запаздывает.');
-    pick(s, 'Длина смаха', 'tol', 1, [['Короткая', 0.75], ['Обычная', 1], ['Длинная', 1.4]], '«Короткая» — хватит маленького движения; «Длинная» — мелкие подёргивания не считаются.');
-    s.appendChild(h('h2', 'Джойстик, геймпад, клавиатура'));
-    s.appendChild(h('p', 'Подключаются сами, без настройки — например, джойстик коляски или большая клавиатура по Bluetooth. Джойстик: толчок к букве и назад — буква, короткий толчок — буква у центра, толчок с поворотом — буква с поворотом. Кнопки: A — пробел, B — стереть, X — сказать, Y — заглавная. Клавиатура: цифры справа (или стрелки) — направления; держите вместе с 5 — буква у центра, вместе с соседней цифрой — буква с поворотом; буквы можно печатать и просто клавишами.', 'note'));
-
     s.appendChild(h('h2', 'Помощь'));
     var hr = row();
     hr.appendChild(btn('Первая проверка: что заметить', '', function () { checkScreen(function () { adultScreen(); }); }));
     hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(function () { adultScreen(); }); }));
     hr.appendChild(btn('Первый экран', '', welcomeScreen));
+    hr.appendChild(btn('Удобство', '', comfortScreen));
     s.appendChild(hr);
     if (focus === 'choice') setTimeout(function () { ch.scrollIntoView({ block: 'start' }); }, 0);
     render();
@@ -991,6 +1070,38 @@
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { ok.textContent = 'Скопировано. Вставьте в сообщение.'; }, fallback); else fallback();
     }));
     s.appendChild(ok);
+    render();
+  }
+
+  function comfortScreen() {
+    var s = begin(); s.scrollTop = 0;
+    s.appendChild(btn('← Вернуться', '', function () { adultScreen(); }));
+    s.appendChild(h('h1', 'Удобство'));
+    var on = comfortSummary();
+    s.appendChild(h('p', on.length ? 'Включено: ' + on.join(', ') + '.' : 'Сейчас обычные настройки.', 'note'));
+    s.appendChild(btn('Пройти пять вопросов заново', 'wide', function () { document.body.classList.add('welcome'); doorScreen(0, {}); }));
+    s.appendChild(h('h2', 'Руки'));
+    s.appendChild(handButtons());
+    s.appendChild(btn('Проверить руку — 30 секунд', 'wide', function () { handCheck(comfortScreen); }));
+    pick(s, 'Защита от случайных касаний', 'guard', 0, [['Нет', 0], ['Слабая', 1], ['Сильная', 2]], 'Короткие задевания и повторные «дребезжащие» касания не станут буквами.');
+    pick(s, 'Сгладить дрожь', 'smooth', 0, [['Нет', 0], ['Слегка', 1], ['Сильно', 2]], 'Дрожь сглаживается, когда палец движется медленно; быстрый смах не запаздывает.');
+    pick(s, 'Длина смаха', 'tol', 1, [['Короткая', 0.75], ['Обычная', 1], ['Длинная', 1.4]], '«Короткая» — хватит маленького движения; «Длинная» — мелкие подёргивания не считаются.');
+    s.appendChild(toggle('Крупная звезда — больше места для пальца', 'bigStar', false, function () { layout(true); }));
+    pick(s, 'Способ набора', 'mode', 'pulse', [['Пульс', 'pulse'], ['Толчки', 'jabs']], '«Пульс» — смах на каждую букву. «Толчки» — слово одним касанием: толчок к букве и назад, поднял палец — пробел. Когда «Пульс» освоен.');
+    s.appendChild(h('p', 'Джойстик (и коляски), геймпад и большая клавиатура по Bluetooth работают сами. Джойстик: толчок к букве и назад — буква, короткий — у центра, с поворотом — с поворотом; A — пробел, B — стереть, X — сказать. Клавиатура: цифры справа или стрелки — направления; с 5 — у центра, с соседней — с поворотом.', 'muted'));
+    s.appendChild(h('h2', 'Глаза и уши'));
+    s.appendChild(toggle('Крупный текст на экране', 'bigText', false, applyLook));
+    s.appendChild(toggle('Звук «пульк» на каждую букву', 'tick', true));
+    s.appendChild(h('p', 'Звукового компаса и экранного диктора в веб-версии нет — для незрячих лучше Android-версия.', 'muted'));
+    s.appendChild(h('h2', 'Внимание'));
+    s.appendChild(toggle('Спокойный режим: меньше кнопок, мягче голос, без звука букв', 'calm', false));
+    s.appendChild(h('h2', 'Речь'));
+    voiceControls(s);
+    s.appendChild(toggle('Говорить по словам, пока печатаю', 'words', false));
+    s.appendChild(h('h2', 'Помощник рядом'));
+    var hr = row(); s.appendChild(hr);
+    hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(comfortScreen); }));
+    hr.appendChild(btn('Первая проверка', '', function () { checkScreen(comfortScreen); }));
     render();
   }
 
@@ -1235,6 +1346,7 @@
   });
   window.addEventListener('resize', function () { layout(); });
   if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', function () { layout(true); }); }
+  applyLook();
   layout(true);
   // the welcome comes once; those who already used Пульк go straight on
   if (!store.get('welcomed', false) && !store.get('lessonDone', false) && !store.get('drops', 0)) welcomeScreen();
