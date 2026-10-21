@@ -312,10 +312,13 @@
   function chipsSoon() { if (!chipsFrame) chipsFrame = requestAnimationFrame(function () { chipsFrame = 0; paintChips(); }); }
   function typeLetter(v) { tick(); lastFix = null; text += caps() && !symbols ? v.toUpperCase() : v; shiftOnce = false; render(); }
   // a finished word that is not a word, but is one stroke-slip away from a word, is corrected; ⌫ right after undoes it
+  // which letters are hard for this hand: the game brings them more often
+  function missed(ch) { ch = ch.toLowerCase(); var st = store.get('letters', {}), v = own(st, ch) || [0, 0]; v[1]++; st[ch] = v; store.set('letters', st); }
   function fixLastWord() {
     var w = currentWord(), W = words(); if (guided || !W || w.length < 2) return null;
     var c = W.correction(w, userWords());
     if (!c || c === w) return null;
+    for (var i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
     var before = text; text = text.slice(0, text.length - w.length) + c; return { before: before, word: w };
   }
   function space() {
@@ -335,6 +338,7 @@
     if (t.key) { guide.t0 = performance.now(); return; }   // a service key is not a try: just show the way again
     var want = guided.word[guided.i], s = resolve(table(), t.pts);
     if (s.petal >= 0 && s.v === want) { guided.note(''); return nextGuided(want); }
+    missed(want);
     if (++guided.miss >= 3) { guided.note('Я помог с буквой «' + want + '». Дальше — ты.'); return nextGuided(want); }
     guided.note(s.petal >= 0 ? 'Это «' + s.v + '». Нужна «' + want + '» — веди пальцем, как бежит точка.' : 'Веди пальцем по звезде, как бежит точка.');
     guide.t0 = performance.now();
@@ -345,6 +349,38 @@
     var g = guided; guided = null; showGuide(null); render(); g.done();
   }
 
+  // ---- «Толчки» (as Pulse.kt): a whole word without lifting the finger. One touch is cut into jabs — from home
+  // out towards a petal and back; each return home is a letter; lifting the finger ends the word with a space ----
+  var JAB_OUT = 14, JAB_HOME = 10, JAB_SHORT = 30;
+  function Jabs(ax, ay) { this.ax = ax; this.ay = ay; this.cur = []; this.far = 0; this.settling = false; this.hx = 0; this.hy = 0; this.best = 0; }
+  Jabs.prototype.add = function (x, y) {
+    if (this.settling) {   // after a jab the finger is still coming back: home settles where it comes closest to the old home
+      var d0 = Math.hypot(x - this.hx, y - this.hy);
+      if (d0 <= this.best + 0.8) { if (d0 < this.best) this.best = d0; this.ax = x; this.ay = y; return null; }
+      this.settling = false;
+    }
+    var d = Math.hypot(x - this.ax, y - this.ay);
+    if (!this.cur.length) { if (d < JAB_OUT) return null; this.cur.push(this.ax, this.ay); }
+    this.cur.push(x, y); if (d > this.far) this.far = d;
+    if (d < Math.max(JAB_HOME, this.far * 0.4)) {
+      var r = this.cur; this.cur = []; this.far = 0;
+      this.settling = true; this.hx = this.ax; this.hy = this.ay; this.best = d; this.ax = x; this.ay = y;
+      return r;
+    }
+    return null;
+  };
+  Jabs.prototype.finish = function () { if (!this.cur.length) return null; var r = this.cur; this.cur = []; this.far = 0; return r; };
+  // the letter of one jab: its way out decides, as a «Пульс» stroke would (straight, or with a turn)
+  function jab(t, pts) {
+    var ox = pts[0], oy = pts[1], n = pts.length / 2, far = 0, fi = 1;
+    for (var i = 1; i < n; i++) { var d = Math.hypot(pts[2 * i] - ox, pts[2 * i + 1] - oy); if (d > far) { far = d; fi = i; } }
+    var s = resolve(t, pts.slice(0, (fi + 1) * 2));
+    if (s.petal < 0 || s.kind === 'b') s = slot(t, petalOf(pts[2 * fi] - ox, pts[2 * fi + 1] - oy), 'c');
+    if (s.kind === 'c' && far < JAB_SHORT) s = slot(t, s.petal, 'b');
+    return s;
+  }
+  function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game; }
+
   // ---- touch on the keyboard ----
   var touch = null;
   function point(e) { var r = svg.getBoundingClientRect(); return toBase(e.clientX - r.left, e.clientY - r.top); }
@@ -353,12 +389,24 @@
     if (touch) return;   // one thumb: a second finger is ignored
     var b = point(e);
     touch = { id: e.pointerId, key: hit(b[0], b[1]), pts: [b[0], b[1]], trail: [xy(scr(b[0], b[1]))], still: Date.now(), ax: b[0], ay: b[1], shown: '' };
+    if (!touch.key && jabsOn()) touch.jabs = new Jabs(b[0], b[1]);
     if (touch.key && touch.key.fn === 'bksp' && !guided) { backspace(); touch.rep = setTimeout(function rep() { backspace(); if (touch) touch.rep = setTimeout(rep, 70); }, 450); }
     keepAwake();
   });
   svg.addEventListener('pointermove', function (e) {
     if (!touch || touch.id !== e.pointerId || touch.key) return;
     var b = point(e);
+    if (touch.jabs) {
+      var done = touch.jabs.add(b[0], b[1]);
+      if (done) { typeLetter(jab(table(), done).v); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden'); touch.shown = ''; return; }
+      var cur = touch.jabs.cur; if (!cur.length) return;
+      var js = jab(table(), cur), pts = [];
+      for (var i = 0; i < cur.length; i += 2) pts.push(xy(scr(cur[i], cur[i + 1])));
+      light(js.petal); trail.setAttribute('points', pts.join(' '));
+      var jshown = caps() && !symbols ? js.v.toUpperCase() : js.v;
+      if (jshown !== touch.shown) { touch.shown = jshown; bubbleText.textContent = jshown; bubble.setAttribute('visibility', 'visible'); bubbleText.setAttribute('visibility', 'visible'); }
+      return;
+    }
     touch.pts.push(b[0], b[1]); touch.trail.push(xy(scr(b[0], b[1])));
     if (Math.hypot(b[0] - touch.ax, b[1] - touch.ay) > 4) { touch.ax = b[0]; touch.ay = b[1]; touch.still = Date.now(); }
     var s = resolve(table(), touch.pts);
@@ -376,6 +424,8 @@
     if (relayout) { relayout = false; layout(true); }
     if (cancelled) return;
     if (guided) { guidedStroke(t); return; }
+    if (game && !t.key) { gameStroke(t); return; }
+    if (t.jabs) { var last = t.jabs.finish(); if (last) typeLetter(jab(table(), last).v); space(); return; }
     if (t.key) {
       switch (t.key.fn) {
         case 'space': space(); break; case 'enter': if (onEnter) onEnter(); break;
@@ -471,11 +521,14 @@
   document.addEventListener('visibilitychange', keepAwake);
   function history() { return store.get('phrases', []); }
   function remember(t) { t = t.trim(); store.set('phrases', [t].concat(history().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 200)); logSaid(learnText(t) || 0); }
+  // the conversation: what the child said and what the adult wrote, in turns, kept on this phone
+  function talk(who, t) { t = (t || '').trim(); if (!t) return; var l = store.get('talk', []); l.push({ w: who, t: t, at: Date.now() }); store.set('talk', l.slice(-100)); }
+  var talking = false;
   function sayAll() {
     var fix = fixLastWord(); if (fix) lastFix = null;   // a slip in the last word is fixed before it is said aloud
     var t = text.trim(); if (!t) return;
     say(t); remember(t); text = ''; lastFix = null;
-    if (tab === 'speak') speakScreen(true); else render();
+    if (tab === 'speak') { talk('me', t); if (talking) talkScreen(); else speakScreen(true); } else render();
   }
   function showBig(t) { t = t || lastSaid || ''; var b = $('bigText'); b.textContent = t; b.style.fontSize = (t.length < 16 ? 60 : t.length < 50 ? 42 : 30) + 'px'; $('big').style.display = 'flex'; }
   var afterBig = null;
@@ -497,7 +550,8 @@
     var f = document.createElement(multi ? 'textarea' : 'input'); if (multi) f.rows = 3; else f.type = 'text';
     f.value = value; f.placeholder = placeholder; f.oninput = function () { onInput(f.value); }; return f;
   }
-  function begin(mode) {   // every screen starts clean: no guide, no leftover action or Enter
+  function begin(mode) {   // every screen starts clean: no guide, no game, no leftover action or Enter
+    talking = false; game = null; document.body.classList.remove('talking');
     var s = $('screen'); s.innerHTML = ''; chipMode = mode || 'none'; chipAction = null; onEnter = null; guided = null; showGuide(null); return s;
   }
 
@@ -535,19 +589,20 @@
       if (ch.q) card.appendChild(h('div', ch.q, 'cq'));
       var cg = row('choices');
       ch.opts.forEach(function (o, i) {
-        cg.appendChild(photoButton((ch.picked === i ? '✓ ' : '') + o, photoOf(o), ch.picked === i ? 'main' : '', function () { say(o); remember(o); ch.picked = i; store.set('choice', ch); speakScreen(); }));
+        cg.appendChild(photoButton((ch.picked === i ? '✓ ' : '') + o, photoOf(o), ch.picked === i ? 'main' : '', function () { say(o); remember(o); talk('me', o); ch.picked = i; store.set('choice', ch); speakScreen(); }));
       });
       card.appendChild(cg);
       card.appendChild(btn('Готово — убрать выбор', 'wide quiet', function () { store.set('choice', null); speakScreen(true); }));
       s.appendChild(card);
     }
     var g = row('answers');
-    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); logSaid(0); })); });
+    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); logSaid(0); talk('me', p); })); });
     s.appendChild(g);
     var cats = row('scroll'), list = document.createElement('div'), r0 = row();
     if (aboutMe()) { var am = btn('Про меня', 'main', function () { say(aboutMe()); showBig(aboutMe()); }); am.style.flex = '1'; r0.appendChild(am); }
     var ur = btn('Срочно', 'urgent', function () { sitName = 'Срочно'; paintSit(); list.scrollIntoView({ block: 'nearest' }); });
     ur.style.flex = '1'; r0.appendChild(ur);
+    var tk = btn('💬 Разговор', '', talkScreen); tk.style.flex = '1'; r0.appendChild(tk);
     s.appendChild(r0);
     s.appendChild(textBox('Печатай звездой — я скажу'));
     var r = row();
@@ -569,12 +624,12 @@
       all.forEach(function (x) { cats.appendChild(btn((x[0] === sitName ? '✓ ' : '') + x[0], x[0] === sitName ? 'main' : '', function () { sitName = x[0]; paintSit(); })); });
       if (cur[0] === 'Семья') {
         var tiles = row('tiles');
-        cur[1].forEach(function (f) { tiles.appendChild(photoButton(f.w, f.img, '', function () { say(f.w); remember(f.w); })); });
+        cur[1].forEach(function (f) { tiles.appendChild(photoButton(f.w, f.img, '', function () { say(f.w); remember(f.w); talk('me', f.w); })); });
         list.appendChild(tiles); return;
       }
       cur[1].forEach(function (p) {
         var line = row('line');
-        line.appendChild(btn(p, 'wide', function () { say(p); remember(p); }));
+        line.appendChild(btn(p, 'wide', function () { say(p); remember(p); talk('me', p); }));
         if (cur[0] === 'Мои') line.appendChild(btn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); paintSit(); }));
         list.appendChild(line);
       });
@@ -584,7 +639,7 @@
       s.appendChild(h('h2', 'Сказано'));
       var hist = history().slice(0, 8);
       if (!hist.length) s.appendChild(h('p', 'Здесь появятся сказанные фразы — касание повторит.', 'muted'));
-      hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); })); });
+      hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); talk('me', p); })); });
     }
     s.appendChild(h('h2', 'Для взрослого'));
     var ar = row();
@@ -593,6 +648,37 @@
     s.appendChild(ar);
     if (!calm()) s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать, 🔊 — ещё раз. Промахи звезды Пульк поправит сам; ⌫ сразу после — вернуть как было. Работает и без интернета, если страница открывалась хотя бы раз.', 'muted'));
     onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
+  }
+
+  // «Разговор»: the child's phrases and the adult's, in turns, big — the adult can write a question too: many
+  // autistic children follow written words more easily than spoken ones, and the feed shows whose turn it is
+  function talkScreen() {
+    var s = begin('speak'); talking = true; document.body.classList.add('talking');
+    var top = row();
+    top.appendChild(btn('← Говорить', '', function () { speakScreen(true); }));
+    top.appendChild(btn('Новый разговор', 'quiet', function () { store.set('talk', []); talkScreen(); }));
+    s.appendChild(top);
+    var feed = h('div', '', 'feed'), list = store.get('talk', []).slice(-40), lastDay = '';
+    if (!list.length) feed.appendChild(h('p', 'Здесь будет разговор по очереди: вопросы взрослого — слева, ответы — справа, крупно. Касание повторяет фразу вслух.', 'muted'));
+    list.forEach(function (m) {
+      var d = new Date(m.at), day = d.toDateString();
+      if (day !== lastDay) { lastDay = day; feed.appendChild(h('div', d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }), 'day')); }
+      var b = btn(m.t, 'bubble ' + (m.w === 'me' ? 'me' : 'you'), function () { say(m.t, m.w !== 'me'); });
+      feed.appendChild(b);
+    });
+    s.appendChild(feed);
+    var ar = row('line'), ask = '';
+    var af = field('', 'Взрослый: вопрос или ответ', function (v) { ask = v; });
+    af.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } };
+    function send() { if (!ask.trim()) return; talk('you', ask); talkScreen(); }
+    ar.appendChild(af); ar.appendChild(btn('→', 'main x', send));
+    s.appendChild(ar);
+    var g = row('scroll');
+    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); logSaid(0); talk('me', p); talkScreen(); })); });
+    s.appendChild(g);
+    s.appendChild(textBox('Ответ — звездой'));
+    onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
+    s.scrollTop = s.scrollHeight;
   }
 
   function toggle(label, key, def, after) {
@@ -729,7 +815,7 @@
     function offer(question, list) {
       list = list.map(function (o) { o = o.trim(); return o && o[0].toUpperCase() + o.slice(1); }).filter(Boolean).slice(0, 6); if (!list.length) return;
       var c = { q: question.trim(), opts: list, picked: -1 };
-      store.set('choice', c);
+      store.set('choice', c); talk('you', c.q);
       var recent = store.get('choices', []).filter(function (x) { return x.opts.join() !== c.opts.join(); });
       store.set('choices', [{ q: c.q, opts: c.opts }].concat(recent).slice(0, 8));
       tab = 'speak'; speakScreen(true);
@@ -801,6 +887,15 @@
     s.appendChild(h('h2', 'Голос'));
     voiceControls(s);
     s.appendChild(toggle('Говорить по словам, пока печатаю', 'words', false));
+
+    s.appendChild(h('h2', 'Способ набора'));
+    s.appendChild(h('p', '«Пульс» — смах на каждую букву. «Толчки» — целое слово одним касанием: палец на звезде, толчок к букве и назад, следующая буква, поднял палец — пробел. Включайте, когда «Пульс» освоен.', 'note'));
+    var mr = row('pair'); s.appendChild(mr);
+    function paintMode() {
+      mr.innerHTML = '';
+      [['Пульс', 'pulse'], ['Толчки', 'jabs']].forEach(function (x) { var on = store.get('mode', 'pulse') === x[1]; mr.appendChild(btn((on ? '✓ ' : '') + x[0], on ? 'main' : '', function () { store.set('mode', x[1]); paintMode(); })); });
+    }
+    paintMode();
 
     s.appendChild(h('h2', 'Удобство'));
     s.appendChild(handButtons());
@@ -911,6 +1006,65 @@
     s.appendChild(ok); render();
   }
 
+  // «Пузыри»: a letter in a bubble; the right stroke pops it with a «пульк». No time, no losing: a bubble waits.
+  // Big letters first, then the ones at the centre, then the turns; letters this hand misses come more often.
+  var game = null;
+  function poppedAll() { return store.get('popped', 0); }
+  function gameLevel() { var n = poppedAll(); return n < 15 ? 0 : n < 40 ? 1 : 2; }
+  function pool() {
+    var kinds = [[0], [0, 3], [0, 3, 1, 2]][gameLevel()], out = [];
+    for (var p = 0; p < 8; p++) kinds.forEach(function (k) { var c = D.RU[p][k]; if (c && /[а-я]/.test(c)) out.push(c); });
+    return out;
+  }
+  function nextLetter(prev) {
+    var st = store.get('letters', {}), ls = pool().filter(function (c) { return c !== prev; }), sum = 0;
+    var ws = ls.map(function (c) { var v = own(st, c) || [0, 0], w = 1 + 3 * v[1] / (v[0] + v[1] + 1); sum += w; return w; });
+    var r = Math.random() * sum;
+    for (var i = 0; i < ls.length; i++) { r -= ws[i]; if (r <= 0) return ls[i]; }
+    return ls[ls.length - 1];
+  }
+  var ROUND = 10;
+  function gameScreen() {
+    var s = begin(); lang = 'ru'; symbols = false; shiftOnce = false; text = '';
+    var lv = gameLevel();
+    game = { letter: nextLetter(''), miss: 0, n: 0, level: lv };
+    s.appendChild(h('h1', 'Пузыри'));
+    s.appendChild(h('p', ['Крупные буквы: прямой смах.', 'Добавились буквы у центра: туда и обратно.', 'Все буквы: и с поворотом.'][lv] + ' Пузырь ждёт — спешить некуда.', 'note'));
+    var d = h('div', '', 'dots'); s.appendChild(d);
+    var area = h('div', '', 'pond-area'), bub = h('div', '', 'bubble-l'); area.appendChild(bub); s.appendChild(area);
+    var ok = h('div', '', 'ok'); s.appendChild(ok);
+    s.appendChild(btn('К тренировкам', 'wide', function () { theme = -1; drillsScreen(); }));
+    function paint() {
+      d.textContent = ''; var b = document.createElement('b');
+      for (var i = 0; i < ROUND; i++) b.textContent += i < game.n ? '●' : '○';
+      d.appendChild(b); d.appendChild(document.createTextNode(game.n + ' из ' + ROUND));
+      bub.textContent = game.letter; bub.className = 'bubble-l';
+      if (game.level === 0) showGuide(game.letter); else showGuide(null);   // at first the way is shown at once
+    }
+    game.hit = function () {
+      var st = store.get('letters', {}), v = own(st, game.letter) || [0, 0]; v[0]++; st[game.letter] = v; store.set('letters', st);
+      store.set('popped', poppedAll() + 1); tick();
+      bub.className = 'bubble-l pop'; ok.style.color = ''; ok.textContent = ''; game.n++; game.miss = 0;
+      var g = game;
+      setTimeout(function () {
+        if (game !== g) return;
+        if (g.n < ROUND) { g.letter = nextLetter(g.letter); paint(); return; }
+        showGuide(null); game = null;
+        ok.textContent = ROUND + ' пузырей! +1 капля — в пруду ' + addDrop() + (gameLevel() > g.level ? '. Дальше — новые буквы.' : '');
+        area.innerHTML = ''; area.appendChild(btn('Ещё раунд', 'main wide', gameScreen));
+      }, 380);
+    };
+    game.wrong = function (got) {
+      missed(game.letter); game.miss++;
+      bub.className = 'bubble-l wobble'; void bub.offsetWidth; bub.className = 'bubble-l wobble';
+      ok.style.color = 'var(--muted)';
+      ok.textContent = got ? 'Это «' + got + '». Пузырь «' + game.letter + '» — смотри, как бежит точка.' : 'Веди пальцем по звезде, как бежит точка.';
+      showGuide(game.letter);
+    };
+    paint(); render();
+  }
+  function gameStroke(t) { var s = resolve(table(), t.pts); if (s.petal >= 0 && s.v === game.letter) game.hit(); else game.wrong(s.petal >= 0 ? s.v : ''); }
+
   // «Тренировки»: everyday scenes; type or choose; any answer is said
   var theme = -1, at = 0;
   function themes() { return D.themes.concat(drops() >= 15 && D.play ? [D.play] : []); }
@@ -921,6 +1075,11 @@
       s.appendChild(h('h1', 'Тренировки'));
       s.appendChild(h('p', 'Короткие жизненные ситуации. Читаешь — отвечаешь: печатаешь звездой или выбираешь. Телефон говорит ответ.', 'muted'));
       var done = store.get('drillsDone', {});
+      var gc = h('div', '', 'card choice');
+      gc.appendChild(h('div', 'Пузыри — игра на буквы', 'title'));
+      gc.appendChild(h('div', 'Лопай пузыри смахами. Трудные буквы попадаются чаще. Без времени и без проигрыша.', 'muted'));
+      gc.appendChild(btn('Играть', 'main wide', gameScreen));
+      s.appendChild(gc);
       themes().forEach(function (t, i) {
         var c = h('div', '', 'card');
         c.appendChild(h('div', (done[t.title] ? '✓ ' : '') + t.title, 'title')); c.appendChild(h('div', t.about, 'muted'));
