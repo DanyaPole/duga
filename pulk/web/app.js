@@ -606,7 +606,14 @@
   // ---- the voice ----
   var lastSaid = '', utter = null;
   function rate() { return store.get('rate', 1); }
-  function voices(ru) { return window.speechSynthesis ? speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(ru ? 'ru' : 'en') === 0; }) : []; }
+  // voices of the phone itself first: an «online» voice (Google, Microsoft in some browsers) sends the phrase to its
+  // service, and «nothing leaves the phone» would not be true — such a voice is never picked by default and is marked
+  function voices(ru) {
+    if (!window.speechSynthesis) return [];
+    var vs = speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(ru ? 'ru' : 'en') === 0; });
+    return vs.filter(onPhone).concat(vs.filter(function (x) { return !onPhone(x); }));
+  }
+  function onPhone(v) { return v.localService !== false; }
   function say(t, word) {
     t = (t || '').trim(); if (!t || !window.speechSynthesis) return;
     if (!word) lastSaid = t;
@@ -755,6 +762,7 @@
       hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); talk('me', p); })); });
     }
     s.appendChild(h('h2', 'Для взрослого'));
+    if (iosBrowser && hasOwnData()) s.appendChild(h('p', 'Пульк открыт в Safari: добавьте его на экран «Домой», чтобы слова и фото не пропали. Копия — в «Настройки и помощь».', 'warn'));
     var ar = row();
     ar.appendChild(btn('Предложить выбор', '', function () { adultScreen('choice'); }));
     ar.appendChild(btn('Настройки и помощь', '', function () { adultScreen(); }));
@@ -813,7 +821,9 @@
     function paintVoices() {
       vr.innerHTML = ''; var vs = voices(true), cur = store.get('voice', '') || (vs[0] && vs[0].name);
       if (!vs.length) vr.appendChild(h('p', 'Русский голос не найден. На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский.', 'muted'));
-      if (vs.length > 1) vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, ''), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
+      if (vs.length > 1) vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, '') + (onPhone(v) ? '' : ' · через интернет'), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
+      var curV = vs.filter(function (v) { return v.name === cur; })[0];
+      if (curV && !onPhone(curV)) vr.appendChild(h('p', 'Этот голос работает через интернет: каждая фраза уходит его сервису. Чтобы всё оставалось на устройстве, установите русский голос в настройках устройства и выберите его здесь.', 'warn'));
     }
     function choices(box, key, def, list, phrase) {
       box.innerHTML = '';
@@ -891,6 +901,61 @@
     s.appendChild(h('p', tip, 'muted'));
   }
 
+  // ---- the child's words, photos and phrases live in this browser only. Safari on iPhone may clear a site's data
+  // after 7 days without a visit — unless Пульк is on the home screen; a copy to a file keeps them in any case ----
+  var iosBrowser = navigator.standalone === false;   // iPhone Safari, not opened from the home screen
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (p) { if (!p) navigator.storage.persist(); }).catch(function () {});
+  function hasOwnData() { return mine().length || family().length || groups().length || aboutMe() || drops() > 0; }
+  function backupData() {
+    var o = {};
+    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('pulk.') === 0) o[k] = localStorage.getItem(k); }
+    return { app: 'pulk', v: 1, at: new Date().toISOString(), data: o };
+  }
+  function saveBackup(done) {
+    store.set('backupAt', Date.now());
+    var json = JSON.stringify(backupData()), name = 'pulk-kopiya-' + today() + '.json', file = null;
+    try { file = new File([json], name, { type: 'application/json' }); } catch (e) {}
+    function download() {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name;
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500); done('Копия сохранена: ' + name);
+    }
+    // a phone offers its own sheet: Files, a messenger, mail; elsewhere the file is downloaded
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Пульк — копия' }).then(function () { done('Копия отправлена.'); }, function (e) { if (e && e.name === 'AbortError') done(''); else download(); });
+    } else download();
+  }
+  function restoreBackup(done) {
+    var f = document.createElement('input'); f.type = 'file'; f.accept = 'application/json,.json';
+    f.onchange = function () {
+      var file = f.files && f.files[0]; if (!file) return;
+      var r = new FileReader();
+      r.onload = function () {
+        if (applyBackup(r.result)) { done('Восстановлено. Пульк откроется заново.'); setTimeout(function () { location.reload(); }, 900); }
+        else done('Это не копия Пулька — ничего не изменено.');
+      };
+      r.readAsText(file);
+    };
+    f.click();
+  }
+  function applyBackup(text) {
+    try {
+      var b = JSON.parse(text); if (!b || b.app !== 'pulk' || !b.data) return false;
+      Object.keys(b.data).forEach(function (k) { if (k.indexOf('pulk.') === 0 && typeof b.data[k] === 'string') localStorage.setItem(k, b.data[k]); });
+      return true;
+    } catch (e) { return false; }
+  }
+  function safetyCard(s) {
+    var c = h('div', '', 'card'); s.appendChild(c);
+    c.appendChild(h('div', 'Сохранность слов и фото', 'title'));
+    if (iosBrowser) c.appendChild(h('p', 'Добавьте Пульк на экран «Домой» (в Safari «Поделиться» → «На экран „Домой“»). Иначе iPhone может стереть слова, фото и фразы, если Пульк не открывали 7 дней.', 'warn'));
+    var at = store.get('backupAt', 0);
+    c.appendChild(h('p', at ? 'Последняя копия: ' + new Date(at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) + '.' : 'Копию ещё не сохраняли. Она нужна, чтобы перенести Пулька на другой телефон или вернуть всё после сбоя.', 'muted'));
+    var ok = h('div', '', 'ok'), r = row();
+    r.appendChild(btn('Сохранить копию', 'main', function () { saveBackup(function (m) { ok.textContent = m; }); }));
+    r.appendChild(btn('Восстановить из копии', '', function () { restoreBackup(function (m) { ok.textContent = m; }); }));
+    c.appendChild(r); c.appendChild(ok);
+  }
+
   // the week, kept on this phone only: phrases said and new words, so the adult sees that it grows
   function today() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function logSaid(newWords) {
@@ -909,6 +974,7 @@
     if (!store.get('lessonDone', false)) return 'Сегодня — урок «Учиться», 3 минуты. Вы рядом, палец — его.';
     if (!store.get('choices', []).length) return 'Сегодня — выбор из двух: «Предложить выбор» → «сок, вода». Спросите вслух и подождите.';
     if (family().length < 3) return 'Сегодня — словарь семьи: три слова с фото (мама, любимая игрушка, питомец).';
+    if (hasOwnData() && Date.now() - store.get('backupAt', 0) > 14 * 864e5) return 'Сегодня — сохраните копию слов и фото: кнопка «Сохранить копию» чуть ниже. Минута — и ничего не пропадёт.';
     if (!store.get('drillsDone', {})['Просьбы']) return 'Сегодня — тренировка «Просьбы» во вкладке «Тренировки».';
     var tips = [
       'Сегодня — фразы «Близким»: покажите «Обними меня» и «Посмотри!».',
@@ -926,6 +992,7 @@
     s.appendChild(btn('← Вернуться', '', function () { sitName = null; speakScreen(true); }));
     s.appendChild(h('h1', 'Для взрослого'));
     var tc = h('div', '', 'card choice'); tc.appendChild(h('div', todayTip(), 'title')); s.appendChild(tc);
+    if (hasOwnData() || iosBrowser) safetyCard(s);
     var w = week();
     s.appendChild(h('p', w.said ? 'За неделю: сказано ' + w.said + ' раз, новых слов — ' + w.fresh + ', дней с Пульком — ' + w.days + '. Всё это хранится только на этом телефоне.' : 'Здесь появится, сколько сказано за неделю. Хранится только на этом телефоне.', 'muted'));
 
@@ -1275,7 +1342,8 @@
       'Добавьте Пульк на экран «Домой»: в Safari «Поделиться» → «На экран „Домой“». Без адресной строки места больше.']],
     ['Что дальше', [
       'Урок → «Тренировки» по ситуациям (просьбы, самочувствие, окружение) → «Говорить» в жизни. Каждая получившаяся фраза в уроке и тренировках — капля в пруду.',
-      'Всё набранное остаётся на этом телефоне: Пульк ничего никуда не отправляет.']],
+      'Раз в пару недель сохраняйте копию: «Настройки и помощь» → «Сохранить копию». Из копии всё восстанавливается и на другом телефоне.',
+      'Всё набранное остаётся на этом телефоне: Пульк ничего никуда не отправляет. Голос — встроенный в телефон; если в списке голосов есть пометка «через интернет», такой голос отправляет фразы своему сервису, и Пульк о нём предупредит.']],
   ];
   function parentsScreen(back) {
     var s = begin(); s.scrollTop = 0;
@@ -1322,5 +1390,5 @@
   else document.querySelector('#tabs button[data-tab="' + (store.get('lessonDone', false) ? 'speak' : 'lesson') + '"]').click();
   // for checks on a computer
   window.PULK_WEB = { resolve: resolve, table: table, spot: spot, PH: PH, hit: hit, text: function () { return text; }, lastSaid: function () { return lastSaid; },
-    words: function () { return words(); }, userWords: userWords, geo: function () { return { K: K, CX: CX, CY: CY, W: W, left: left }; } };
+    words: function () { return words(); }, backupData: backupData, applyBackup: applyBackup, voices: voices, userWords: userWords, geo: function () { return { K: K, CX: CX, CY: CY, W: W, left: left }; } };
 })();
