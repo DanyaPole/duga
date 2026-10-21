@@ -45,8 +45,11 @@
   var guide = { path: null, dot: null, pts: null, len: 0, raf: 0, t0: 0, target: -1 };
   function layout(force) {
     if (touch) { relayout = true; return; }   // never move the star under a finger mid-stroke
-    if (!force && W === window.innerWidth && VH === window.innerHeight) return;
-    W = window.innerWidth; VH = window.innerHeight; readColours();
+    // the page's own size, not the visible part: a zoomed-in Safari reports a smaller innerWidth, and the star
+    // must not be redrawn for it
+    var de = document.documentElement, nw = de.clientWidth || window.innerWidth, nh = de.clientHeight || window.innerHeight;
+    if (!force && W === nw && VH === nh) return;
+    W = nw; VH = nh; readColours();
     // the big star takes more of the screen: more room for a thumb that does not land precisely
     var big = store.get('bigStar', false);
     K = Math.min(Math.min(W, big ? 520 : 440) / (OUTER * (big ? 0.98 : 1.047)), (W - 2) / OUTER, VH * (big ? 0.5 : 0.42) / (OUTER + 4));
@@ -262,7 +265,12 @@
 
   // ---- touch on the keyboard ----
   var touch = null;
-  function point(e) { var r = svg.getBoundingClientRect(); return toBase(e.clientX - r.left, e.clientY - r.top); }
+  // the finger in the star's own units, whatever the page's zoom or the star's padding: through the drawing's matrix
+  function point(e) {
+    var m = svg.getScreenCTM && svg.getScreenCTM();
+    if (m) { var q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; q = q.matrixTransform(m.inverse()); return toBase(q.x, q.y); }
+    var r = svg.getBoundingClientRect(); return toBase(e.clientX - r.left, e.clientY - r.top);
+  }
   svg.addEventListener('pointerdown', function (e) {
     e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (x) {}
     if (touch) return;   // one thumb: a second finger is ignored
@@ -333,6 +341,13 @@
   }
   svg.addEventListener('pointerup', function (e) { endTouch(e, false); });
   svg.addEventListener('pointercancel', function (e) { endTouch(e, true); });
+  // a touch the phone took away (a system swipe, a call, the app switcher) never ends by itself: without this the
+  // star would wait for it forever and ignore every later touch
+  svg.addEventListener('lostpointercapture', function (e) { endTouch(e, true); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState !== 'visible' && touch) endTouch({ pointerId: touch.id }, true); });
+  // Safari on iPhone zooms with two fingers whatever the page asks: a zoomed page cuts the screens and the star
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
   // ---- a joystick, a gamepad or a keyboard as the star — nothing to set up. A stick works as «Толчки»: a push out
   // and back is a letter, a short push the letter at the centre, a push that turns the letter with a turn. Keys:

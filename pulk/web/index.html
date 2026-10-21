@@ -21,7 +21,7 @@
   html { touch-action: manipulation; }
   body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 16px/1.4 Roboto, system-ui, -apple-system, sans-serif; overflow: hidden; }
-  body { display: flex; flex-direction: column; height: 100dvh; padding-top: env(safe-area-inset-top, 0px); }
+  body { display: flex; flex-direction: column; height: 100dvh; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   #screen { flex: 1; min-height: 0; overflow-y: auto; padding: 12px max(16px, env(safe-area-inset-left, 0px)) 8px max(16px, env(safe-area-inset-right, 0px)); -webkit-user-select: none; user-select: none; }
   h1 { font-size: 22px; line-height: 1.25; margin: 4px 0 6px; } h2 { font-size: 17px; margin: 16px 0 6px; }
   .note { margin: 0 0 8px; color: var(--muted); font-size: 16px; }
@@ -93,7 +93,7 @@
   #tabs { display: flex; gap: 4px; padding: 0 max(8px, env(safe-area-inset-left, 0px)); }
   #tabs button { flex: 1; min-height: 40px; padding: 0 4px; font-size: 14px; border-radius: 12px; }
   #tabs button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-  #kbd { touch-action: none; display: block; width: 100%; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #kbd { touch-action: none; display: block; width: 100%; flex: 0 0 auto; }
   #big { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; z-index: 5; padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px); }
   #big p { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 48px; font-weight: 800; margin: 0; }
   #big.flip p { transform: rotate(180deg); }
