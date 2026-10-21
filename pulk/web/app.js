@@ -14,7 +14,8 @@
       var v = d; try { var s = localStorage.getItem('pulk.' + k); if (s != null) v = JSON.parse(s); } catch (e) {}
       return (memo[k] = v);
     },
-    set: function (k, v) { memo[k] = v; try { localStorage.setItem('pulk.' + k, JSON.stringify(v)); } catch (e) {} },
+    // false when the browser's storage is full (photos fill it first): the caller says so instead of losing it silently
+    set: function (k, v) { memo[k] = v; try { localStorage.setItem('pulk.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   };
 
   var lang = 'ru', symbols = false, shiftOnce = false;
@@ -475,7 +476,8 @@
     u.voice = vs.filter(function (x) { return x.name === chosen; })[0] || vs[0] || null;
     utter = u;   // Safari may drop an utterance nobody holds on to
     // Safari can swallow a phrase spoken right after cancel(): cancel only what is still going, and give it a moment
-    if (ss.speaking || ss.pending) { ss.cancel(); setTimeout(function () { if (utter === u) ss.speak(u); }, 60); } else ss.speak(u);
+    // a browser that throws on speaking leaves the phrase silent, never the page broken
+    try { if (ss.speaking || ss.pending) { ss.cancel(); setTimeout(function () { if (utter === u) try { ss.speak(u); } catch (e) {} }, 60); } else ss.speak(u); } catch (e) {}
   }
   // «Говорить по словам»: each finished word is said at once, so the person beside follows the phrase as it grows
   function sayWord() { if (tab !== 'speak' || guided || !store.get('words', false)) return; var m = /([\p{L}\p{N}-]+) $/u.exec(text); if (m) say(m[1], true); }
@@ -713,12 +715,17 @@
     f.onchange = function () {
       var file = f.files && f.files[0]; if (!file) return;
       var img = new Image(), url = URL.createObjectURL(file);
+      // a picture that will not open (or too big for this phone's memory) gives null: the button says so
       img.onload = function () {
-        var c = document.createElement('canvas'), n = 160, side = Math.min(img.width, img.height); c.width = c.height = n;
-        c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, n, n);
-        URL.revokeObjectURL(url); done(c.toDataURL('image/jpeg', 0.75));
+        var d = null;
+        try {
+          var c = document.createElement('canvas'), n = 160, side = Math.min(img.width, img.height); c.width = c.height = n;
+          c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, n, n);
+          d = side > 0 ? c.toDataURL('image/jpeg', 0.75) : null;
+        } catch (e) {}
+        URL.revokeObjectURL(url); done(d);
       };
-      img.onerror = function () { URL.revokeObjectURL(url); };
+      img.onerror = function () { URL.revokeObjectURL(url); done(null); };
       img.src = url;
     };
     f.click();
@@ -974,12 +981,16 @@
     s.appendChild(h('p', 'Имена, питомцы, любимые вещи и места — с фото, если хотите. Эти слова первыми идут в подсказках, а фото — на кнопках выбора и во вкладке «Семья».', 'note'));
     var fw = '', fimg = null, fl = h('div', '', 'tiles'), fr = row();
     var fwf = field('', 'Слово: Барсик, бабушка, качели', function (v) { fw = v.trim(); });
-    var pb = btn('📷 Фото', '', function () { pickPhoto(function (d) { fimg = d; pb.textContent = '📷 Фото ✓'; }); });
+    var pb = btn('📷 Фото', '', function () { pickPhoto(function (d) { fimg = d; pb.textContent = d ? '📷 Фото ✓' : '📷 Фото не открылось — другое?'; }); });
     fr.appendChild(pb);
     fr.appendChild(btn('Добавить', 'main', function () {
       if (!fw) return;
       var word = fw[0].toUpperCase() + fw.slice(1), list = family().filter(function (x) { return norm(x.w) !== norm(word); });
-      list.push({ w: word, img: fimg }); store.set('family', list.slice(-60));
+      list.push({ w: word, img: fimg });
+      if (!store.set('family', list.slice(-60))) {   // storage full: keep the word without its photo, and say so
+        list[list.length - 1].img = null; store.set('family', list.slice(-60));
+        fr.appendChild(h('p', 'Память браузера заполнена: слово сохранено без фото. Уберите старые фото и добавьте снова.', 'muted'));
+      }
       var u = userWords(), k = fold(word.toLowerCase()); u[k] = Math.max(own(u, k), 5); store.set('user', u);   // known and first in suggestions
       fw = ''; fimg = null; fwf.value = ''; pb.textContent = '📷 Фото'; paintFamily();
     }));
