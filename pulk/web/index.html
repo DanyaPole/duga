@@ -57,6 +57,12 @@
   .card h2 { margin-top: 0; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .pair button { min-height: 56px; font-size: 18px; }
+  button.pic { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px; }
+  button.pic img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; }
+  .choices button.pic img { width: 88px; height: 88px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .tiles button { min-height: 72px; font-weight: 600; }
+  .grow { flex: 1; min-width: 0; padding: 12px 0; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; }
   .ok { color: var(--accent); font-weight: 700; min-height: 24px; margin-top: 8px; }
   #chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px max(12px, env(safe-area-inset-left, 0px)); min-height: 60px; align-items: center; scrollbar-width: none; }

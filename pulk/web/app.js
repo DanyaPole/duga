@@ -95,7 +95,10 @@
     if (touch) { relayout = true; return; }   // never move the star under a finger mid-stroke
     if (!force && W === window.innerWidth && VH === window.innerHeight) return;
     W = window.innerWidth; VH = window.innerHeight; readColours();
-    K = Math.min(Math.min(W, 440) / (OUTER * 1.047), (W - 2) / OUTER, VH * 0.42 / (OUTER + 4));
+    // the big star takes more of the screen: more room for a thumb that does not land precisely
+    var big = store.get('bigStar', false);
+    K = Math.min(Math.min(W, big ? 520 : 440) / (OUTER * (big ? 0.98 : 1.047)), (W - 2) / OUTER, VH * (big ? 0.5 : 0.42) / (OUTER + 4));
+    K = Math.max(K, 0.3);   // a page opened hidden reports no height: never draw the star inside out
     H = Math.ceil(OUTER * K + 4); CX = W + 4; CY = H + 4;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('height', H);
     svg.innerHTML = ''; petals = []; labels = []; keyEls = {}; lit = -2; labelsKey = '';
@@ -265,14 +268,14 @@
   function userWords() { return store.get('user', {}); }
   function learnText(t) {
     var ws = fold(t.toLowerCase()).split(/[^\p{L}'-]+/u).filter(Boolean); if (!ws.length) return;
-    var u = userWords(), pr = store.get('pairs', {}), prev = '^';
+    var u = userWords(), pr = store.get('pairs', {}), prev = '^', fresh = 0;
     ws.forEach(function (w) {
-      if (w.length >= 2) u[w] = own(u, w) + 1;
+      if (w.length >= 2) { if (!own(u, w)) fresh++; u[w] = own(u, w) + 1; }
       var m = own(pr, prev) || (pr[prev] = {}); m[w] = own(m, w) + 1; prev = w;
     });
     var keys = Object.keys(u);
     if (keys.length > 3000) keys.sort(function (a, b) { return u[a] - u[b]; }).slice(0, keys.length - 3000).forEach(function (k) { delete u[k]; });
-    store.set('user', u); store.set('pairs', pr);
+    store.set('user', u); store.set('pairs', pr); return fresh;
   }
   function nextWords(prev) {
     var p = fold(prev), out = [], mine = own(store.get('pairs', {}), p) || {};
@@ -307,7 +310,7 @@
   }
   var chipsFrame = 0;
   function chipsSoon() { if (!chipsFrame) chipsFrame = requestAnimationFrame(function () { chipsFrame = 0; paintChips(); }); }
-  function typeLetter(v) { lastFix = null; text += caps() && !symbols ? v.toUpperCase() : v; shiftOnce = false; render(); }
+  function typeLetter(v) { tick(); lastFix = null; text += caps() && !symbols ? v.toUpperCase() : v; shiftOnce = false; render(); }
   // a finished word that is not a word, but is one stroke-slip away from a word, is corrected; ⌫ right after undoes it
   function fixLastWord() {
     var w = currentWord(), W = words(); if (guided || !W || w.length < 2) return null;
@@ -421,6 +424,22 @@
     wordChips().forEach(function (s) { if (!shown[norm(s)]) box.appendChild(chip(s, '', function () { takeWord(s); })); });
   }
 
+  // «пульк» on every letter: a short soft drop, heard without looking (there is no vibration on iPhone)
+  var audio = null, drop = null;
+  function tick() {
+    if (!store.get('tick', true) || store.get('calm', false)) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!audio) {
+        audio = new AC(); var sr = audio.sampleRate, n = Math.round(0.09 * sr); drop = audio.createBuffer(1, n, sr);
+        var d = drop.getChannelData(0), ph = 0;
+        for (var i = 0; i < n; i++) { var t = i / sr, f = 420 + 700 * (1 - Math.exp(-t / 0.02)); ph += 2 * Math.PI * f / sr; d[i] = Math.sin(ph) * (1 - Math.exp(-t / 0.004)) * Math.exp(-t / 0.03) * 0.25; }
+      }
+      if (audio.state === 'suspended') audio.resume();
+      var src = audio.createBufferSource(); src.buffer = drop; src.connect(audio.destination); src.start();
+    } catch (e) {}
+  }
+
   // ---- the voice ----
   var lastSaid = '', utter = null;
   function rate() { return store.get('rate', 1); }
@@ -430,7 +449,7 @@
     if (!word) lastSaid = t;
     var ss = speechSynthesis, ru = /[а-яё]/i.test(t) || !/[a-z]/i.test(t);
     var u = new SpeechSynthesisUtterance(t), vs = voices(ru), chosen = store.get('voice', '');
-    u.lang = ru ? 'ru-RU' : 'en-US'; u.rate = rate();
+    u.lang = ru ? 'ru-RU' : 'en-US'; u.rate = store.get('calm', false) ? Math.min(rate(), 0.9) : rate(); u.pitch = store.get('pitch', 1);
     u.voice = vs.filter(function (x) { return x.name === chosen; })[0] || vs[0] || null;
     utter = u;   // Safari may drop an utterance nobody holds on to
     // Safari can swallow a phrase spoken right after cancel(): cancel only what is still going, and give it a moment
@@ -451,7 +470,7 @@
   function letSleep() { if (wake && wake.release) wake.release(); wake = null; }
   document.addEventListener('visibilitychange', keepAwake);
   function history() { return store.get('phrases', []); }
-  function remember(t) { t = t.trim(); store.set('phrases', [t].concat(history().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 200)); learnText(t); }
+  function remember(t) { t = t.trim(); store.set('phrases', [t].concat(history().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 200)); logSaid(learnText(t) || 0); }
   function sayAll() {
     var fix = fixLastWord(); if (fix) lastFix = null;   // a slip in the last word is fixed before it is said aloud
     var t = text.trim(); if (!t) return;
@@ -488,29 +507,46 @@
   function aboutMe() { return store.get('about', ''); }
   // «Сейчас»: phrases for this part of the day (as Phrases.now in the app)
   function dayNow() { var hr = new Date().getHours(), part = D.day[D.day.length - 1]; D.day.forEach(function (d) { if (hr >= d[1]) part = d; }); return ['Сейчас · ' + part[0], part[2]]; }
-  function situations() { return (mine().length ? [['Мои', mine()]] : []).concat([dayNow()], D.situations); }
-  var sit = null;
+  // the family's own: words with photos (names, pets, favourite things) and the adult's own phrase groups
+  function family() { return store.get('family', []); }
+  function groups() { return store.get('groups', []); }
+  function photoOf(word) { var n = norm(word), f = family().filter(function (x) { return norm(x.w) === n; })[0]; return f && f.img; }
+  function situations() {
+    var out = [];
+    if (mine().length) out.push(['Мои', mine()]);
+    if (family().length) out.push(['Семья', family()]);
+    groups().forEach(function (g) { if (g.list.length) out.push([g.name, g.list, g]); });
+    out.push(dayNow());
+    return calm() ? out : out.concat(D.situations);   // calm: only one's own and the moment's phrases
+  }
+  function calm() { return store.get('calm', false); }
+  function photoButton(label, img, cls, fn) {
+    var b = btn('', cls, fn);
+    if (img) { var i = document.createElement('img'); i.src = img; i.alt = ''; b.appendChild(i); b.classList.add('pic'); }
+    b.appendChild(document.createTextNode(label)); return b;
+  }
+  var sitName = null;
   function speakScreen(top) {
     var s = begin('speak'); if (top === true) s.scrollTop = 0;
-    // a choice the adult offered: big, first, said with one touch
+    // a choice the adult offered: big, first, said with one touch; a family photo shows on its option
     var ch = store.get('choice', null);
     if (ch && ch.opts && ch.opts.length) {
       var card = h('div', '', 'card choice');
       if (ch.q) card.appendChild(h('div', ch.q, 'cq'));
       var cg = row('choices');
       ch.opts.forEach(function (o, i) {
-        cg.appendChild(btn((ch.picked === i ? '✓ ' : '') + o, ch.picked === i ? 'main' : '', function () { say(o); remember(o); ch.picked = i; store.set('choice', ch); speakScreen(); }));
+        cg.appendChild(photoButton((ch.picked === i ? '✓ ' : '') + o, photoOf(o), ch.picked === i ? 'main' : '', function () { say(o); remember(o); ch.picked = i; store.set('choice', ch); speakScreen(); }));
       });
       card.appendChild(cg);
       card.appendChild(btn('Готово — убрать выбор', 'wide quiet', function () { store.set('choice', null); speakScreen(true); }));
       s.appendChild(card);
     }
     var g = row('answers');
-    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); })); });
+    D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); logSaid(0); })); });
     s.appendChild(g);
     var cats = row('scroll'), list = document.createElement('div'), r0 = row();
     if (aboutMe()) { var am = btn('Про меня', 'main', function () { say(aboutMe()); showBig(aboutMe()); }); am.style.flex = '1'; r0.appendChild(am); }
-    var ur = btn('Срочно', 'urgent', function () { sit = situations().map(function (x) { return x[0]; }).indexOf('Срочно'); paintSit(); list.scrollIntoView({ block: 'nearest' }); });
+    var ur = btn('Срочно', 'urgent', function () { sitName = 'Срочно'; paintSit(); list.scrollIntoView({ block: 'nearest' }); });
     ur.style.flex = '1'; r0.appendChild(ur);
     s.appendChild(r0);
     s.appendChild(textBox('Печатай звездой — я скажу'));
@@ -518,51 +554,67 @@
     r.appendChild(btn('Сказать', 'main', sayAll)); r.appendChild(btn('Показать', '', function () { showBig(text.trim()); }));
     r.appendChild(btn('★ В мои', '', function () {
       var t = text.trim() || lastSaid; if (!t) return;
-      store.set('mine', [t].concat(mine().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 60)); sit = 0; text = ''; speakScreen(true);
+      store.set('mine', [t].concat(mine().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 60)); sitName = 'Мои'; text = ''; speakScreen(true);
     }));
     r.appendChild(btn('Стереть', '', function () { text = ''; lastFix = null; render(); }));
     s.appendChild(r);
     s.appendChild(h('h2', 'Фразы'));
     s.appendChild(cats); s.appendChild(list);
-    var all = situations();
-    if (sit == null || sit >= all.length) sit = mine().length ? 1 : 0;   // «Сейчас» by default; own phrases are one touch left
     function paintSit() {
-      all = situations(); if (sit < 0 || sit >= all.length) sit = 0;
+      var all = situations(), names = all.map(function (x) { return x[0]; });
+      if (names.indexOf(sitName) < 0) sitName = names.indexOf('Семья') >= 0 ? 'Семья' : dayNow()[0];   // the family first, else «Сейчас»
+      if (sitName === 'Срочно' && names.indexOf('Срочно') < 0) sitName = names[0];
+      var cur = all[names.indexOf(sitName)] || all.concat([D.situations.filter(function (x) { return x[0] === 'Срочно'; })[0]])[all.length];
       cats.innerHTML = ''; list.innerHTML = '';
-      all.forEach(function (x, i) { cats.appendChild(btn((i === sit ? '✓ ' : '') + x[0], i === sit ? 'main' : '', function () { sit = i; paintSit(); })); });
-      all[sit][1].forEach(function (p) {
+      all.forEach(function (x) { cats.appendChild(btn((x[0] === sitName ? '✓ ' : '') + x[0], x[0] === sitName ? 'main' : '', function () { sitName = x[0]; paintSit(); })); });
+      if (cur[0] === 'Семья') {
+        var tiles = row('tiles');
+        cur[1].forEach(function (f) { tiles.appendChild(photoButton(f.w, f.img, '', function () { say(f.w); remember(f.w); })); });
+        list.appendChild(tiles); return;
+      }
+      cur[1].forEach(function (p) {
         var line = row('line');
         line.appendChild(btn(p, 'wide', function () { say(p); remember(p); }));
-        if (all[sit][0] === 'Мои') line.appendChild(btn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); paintSit(); }));
+        if (cur[0] === 'Мои') line.appendChild(btn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); paintSit(); }));
         list.appendChild(line);
       });
     }
     paintSit();
-    s.appendChild(h('h2', 'Сказано'));
-    var hist = history().slice(0, 8);
-    if (!hist.length) s.appendChild(h('p', 'Здесь появятся сказанные фразы — касание повторит.', 'muted'));
-    hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); })); });
+    if (!calm()) {
+      s.appendChild(h('h2', 'Сказано'));
+      var hist = history().slice(0, 8);
+      if (!hist.length) s.appendChild(h('p', 'Здесь появятся сказанные фразы — касание повторит.', 'muted'));
+      hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); })); });
+    }
     s.appendChild(h('h2', 'Для взрослого'));
     var ar = row();
-    ar.appendChild(btn('Предложить выбор', '', function () { adultScreen(true); }));
-    ar.appendChild(btn('Голос, «Про меня», рука', '', function () { adultScreen(false); }));
+    ar.appendChild(btn('Предложить выбор', '', function () { adultScreen('choice'); }));
+    ar.appendChild(btn('Настройки и помощь', '', function () { adultScreen(); }));
     s.appendChild(ar);
-    s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать, 🔊 — ещё раз. Промахи звезды Пульк поправит сам; ⌫ сразу после — вернуть как было. Работает и без интернета, если страница открывалась хотя бы раз.', 'muted'));
+    if (!calm()) s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать, 🔊 — ещё раз. Промахи звезды Пульк поправит сам; ⌫ сразу после — вернуть как было. Работает и без интернета, если страница открывалась хотя бы раз.', 'muted'));
     onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
   }
 
+  function toggle(label, key, def, after) {
+    var b = btn('', 'wide', function () { store.set(key, !store.get(key, def)); paint(); if (after) after(); });
+    function paint() { var on = store.get(key, def); b.textContent = (on ? '✓ ' : '') + label; b.className = on ? 'main wide' : 'wide'; }
+    paint(); return b;
+  }
   function voiceControls(s) {
-    var vr = row(), st = row(); s.appendChild(vr); s.appendChild(st);
+    var vr = row(), st = row(), pt = row(); s.appendChild(vr); s.appendChild(st); s.appendChild(pt);
     function paintVoices() {
       vr.innerHTML = ''; var vs = voices(true), cur = store.get('voice', '') || (vs[0] && vs[0].name);
       if (!vs.length) vr.appendChild(h('p', 'Русский голос не найден. На iPhone: Настройки → Универсальный доступ → Устная речь → Голоса → Русский.', 'muted'));
       if (vs.length > 1) vs.forEach(function (v) { vr.appendChild(btn((v.name === cur ? '✓ ' : '') + v.name.replace(/\s*\(.*\)$/, ''), v.name === cur ? 'main' : '', function () { store.set('voice', v.name); paintVoices(); say('Привет! Это мой голос.', true); })); });
     }
-    function paintRate() {
-      st.innerHTML = '';
-      [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]].forEach(function (x) { st.appendChild(btn((rate() === x[1] ? '✓ ' : '') + x[0], rate() === x[1] ? 'main' : '', function () { store.set('rate', x[1]); paintRate(); say('Так я говорю.', true); })); });
+    function choices(box, key, def, list, phrase) {
+      box.innerHTML = '';
+      list.forEach(function (x) { var on = store.get(key, def) === x[1]; box.appendChild(btn((on ? '✓ ' : '') + x[0], on ? 'main' : '', function () { store.set(key, x[1]); choices(box, key, def, list, phrase); say(phrase, true); })); });
     }
-    paintVoices(); paintRate();
+    paintVoices();
+    choices(st, 'rate', 1, [['Медленно', 0.8], ['Обычно', 1], ['Быстро', 1.3]], 'Так я говорю.');
+    // a higher pitch sounds younger: phones have no children's voices, this is the closest a page can get
+    choices(pt, 'pitch', 1, [['Голос обычный', 1], ['Моложе', 1.3]], 'Привет! Это мой голос.');
     if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function () { if (vr.isConnected) paintVoices(); };
   }
   function handButtons() {
@@ -574,6 +626,22 @@
       }));
     });
     return r;
+  }
+  // a photo from the camera or the gallery, made small and square: it lives in this browser's storage
+  function pickPhoto(done) {
+    var f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*';
+    f.onchange = function () {
+      var file = f.files && f.files[0]; if (!file) return;
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var c = document.createElement('canvas'), n = 160, side = Math.min(img.width, img.height); c.width = c.height = n;
+        c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, n, n);
+        URL.revokeObjectURL(url); done(c.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); };
+      img.src = url;
+    };
+    f.click();
   }
 
   // the first visit: a calm page before the keyboard — the hand, the voice, a name; then a lesson or straight to speaking
@@ -610,22 +678,54 @@
     s.appendChild(btn('Начать с урока — 3 минуты', 'main wide', function () { start('lesson'); }));
     s.appendChild(btn('Сразу говорить', 'wide', function () { start('speak'); }));
     s.appendChild(btn('Я взрослый рядом с ребёнком: как помочь', 'wide quiet', function () { parentsScreen(welcomeScreen); }));
-    var tip = 'Всё это можно поменять потом: «Говорить» → «Для взрослого». Набранное остаётся на телефоне.';
+    var tip = 'Всё это можно поменять потом: «Говорить» → «Настройки и помощь». Набранное остаётся на телефоне.';
     if (navigator.standalone === false) tip += ' Чтобы открывать как приложение: «Поделиться» → «На экран „Домой“».';
     s.appendChild(h('p', tip, 'muted'));
   }
 
-  // the adult's screen: a choice to offer (the quickest way to a first conversation), «Про меня», the voice
-  function adultScreen(choiceFirst) {
+  // the week, kept on this phone only: phrases said and new words, so the adult sees that it grows
+  function today() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function logSaid(newWords) {
+    var log = store.get('log', {}), k = today(), v = log[k] || [0, 0];
+    v[0]++; v[1] += newWords; log[k] = v;
+    var keys = Object.keys(log); if (keys.length > 60) delete log[keys[0]];
+    store.set('log', log);
+  }
+  function week() {
+    var log = store.get('log', {}), said = 0, fresh = 0, days = 0;
+    for (var i = 0; i < 7; i++) { var d = new Date(Date.now() - i * 864e5), v = log[d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()]; if (v) { said += v[0]; fresh += v[1]; days++; } }
+    return { said: said, fresh: fresh, days: days };
+  }
+  // one small step for today, from what has (not) been tried yet
+  function todayTip() {
+    if (!store.get('lessonDone', false)) return 'Сегодня — урок «Учиться», 3 минуты. Вы рядом, палец — его.';
+    if (!store.get('choices', []).length) return 'Сегодня — выбор из двух: «Предложить выбор» → «сок, вода». Спросите вслух и подождите.';
+    if (family().length < 3) return 'Сегодня — словарь семьи: три слова с фото (мама, любимая игрушка, питомец).';
+    if (!store.get('drillsDone', {})['Просьбы']) return 'Сегодня — тренировка «Просьбы» во вкладке «Тренировки».';
+    var tips = [
+      'Сегодня — фразы «Близким»: покажите «Обними меня» и «Посмотри!».',
+      'Сегодня — ответьте через Пульк сами: напечатайте ему короткую фразу.',
+      'Сегодня — один вопрос с выбором за едой: «Что ещё положить?»',
+      'Сегодня — «Про меня»: покажите, как представиться незнакомому.',
+      'Сегодня — пусть он напечатает одно своё слово. Любое.',
+    ];
+    return tips[Math.floor(Date.now() / 864e5) % tips.length];
+  }
+
+  // the adult's screen: what to try today, the week, a choice to offer, the family's words, own phrases, settings
+  function adultScreen(focus) {
     var s = begin(); s.scrollTop = 0;
-    s.appendChild(btn('← Вернуться', '', function () { speakScreen(true); }));
+    s.appendChild(btn('← Вернуться', '', function () { sitName = null; speakScreen(true); }));
     s.appendChild(h('h1', 'Для взрослого'));
-    s.appendChild(h('h2', 'Предложить выбор'));
-    s.appendChild(h('p', 'Спросите вслух и напишите варианты обычной клавиатурой. Ребёнок коснётся — телефон скажет.', 'note'));
+    var tc = h('div', '', 'card choice'); tc.appendChild(h('div', todayTip(), 'title')); s.appendChild(tc);
+    var w = week();
+    s.appendChild(h('p', w.said ? 'За неделю: сказано ' + w.said + ' раз, новых слов — ' + w.fresh + ', дней с Пульком — ' + w.days + '. Всё это хранится только на этом телефоне.' : 'Здесь появится, сколько сказано за неделю. Хранится только на этом телефоне.', 'muted'));
+
+    var ch = h('h2', 'Предложить выбор'); s.appendChild(ch);
+    s.appendChild(h('p', 'Спросите вслух и напишите варианты обычной клавиатурой. Ребёнок коснётся — телефон скажет. Фото из словаря семьи появятся на кнопках сами.', 'note'));
     var q = '', opts = '';
-    var qf = field('', 'Вопрос, можно пусто: Что будешь пить?', function (v) { q = v; });
-    var of = field('', 'Варианты через запятую: сок, вода, молоко', function (v) { opts = v; });
-    s.appendChild(qf); s.appendChild(of);
+    s.appendChild(field('', 'Вопрос, можно пусто: Что будешь пить?', function (v) { q = v; }));
+    s.appendChild(field('', 'Варианты через запятую: сок, вода, молоко', function (v) { opts = v; }));
     function offer(question, list) {
       list = list.map(function (o) { o = o.trim(); return o && o[0].toUpperCase() + o.slice(1); }).filter(Boolean).slice(0, 6); if (!list.length) return;
       var c = { q: question.trim(), opts: list, picked: -1 };
@@ -640,21 +740,116 @@
       s.appendChild(h('p', 'Недавние — одним касанием:', 'muted'));
       recent.forEach(function (c) { s.appendChild(btn((c.q ? c.q + ' — ' : '') + c.opts.join(', '), 'wide', function () { offer(c.q, c.opts); })); });
     }
+
+    var fh = h('h2', 'Словарь семьи'); s.appendChild(fh);
+    s.appendChild(h('p', 'Имена, питомцы, любимые вещи и места — с фото, если хотите. Эти слова первыми идут в подсказках, а фото — на кнопках выбора и во вкладке «Семья».', 'note'));
+    var fw = '', fimg = null, fl = h('div', '', 'tiles'), fr = row();
+    var fwf = field('', 'Слово: Барсик, бабушка, качели', function (v) { fw = v.trim(); });
+    var pb = btn('📷 Фото', '', function () { pickPhoto(function (d) { fimg = d; pb.textContent = '📷 Фото ✓'; }); });
+    fr.appendChild(pb);
+    fr.appendChild(btn('Добавить', 'main', function () {
+      if (!fw) return;
+      var word = fw[0].toUpperCase() + fw.slice(1), list = family().filter(function (x) { return norm(x.w) !== norm(word); });
+      list.push({ w: word, img: fimg }); store.set('family', list.slice(-60));
+      var u = userWords(), k = fold(word.toLowerCase()); u[k] = Math.max(own(u, k), 5); store.set('user', u);   // known and first in suggestions
+      fw = ''; fimg = null; fwf.value = ''; pb.textContent = '📷 Фото'; paintFamily();
+    }));
+    s.appendChild(fwf); s.appendChild(fr); s.appendChild(fl);
+    function paintFamily() {
+      fl.innerHTML = '';
+      family().forEach(function (f) {
+        fl.appendChild(photoButton(f.w + ' ✕', f.img, '', function () { store.set('family', family().filter(function (x) { return x !== f; })); paintFamily(); }));
+      });
+      if (family().length) fl.appendChild(h('p', 'Касание по слову здесь — убрать его.', 'muted'));
+    }
+    paintFamily();
+
+    s.appendChild(h('h2', 'Свои фразы по темам'));
+    s.appendChild(h('p', 'Например «Школа», «Бабушка», «Перед сном». Темы появятся в «Говорить» рядом с «Мои».', 'note'));
+    var gname = '', gphrase = '', gl = document.createElement('div');
+    var gnf = field('', 'Тема: Школа', function (v) { gname = v.trim(); });
+    var gpf = field('', 'Фраза: Можно выйти?', function (v) { gphrase = v.trim(); });
+    s.appendChild(gnf); s.appendChild(gpf);
+    s.appendChild(btn('Добавить фразу в тему', 'wide', function () {
+      if (!gname || !gphrase) return;
+      var gs = groups(), g = gs.filter(function (x) { return norm(x.name) === norm(gname); })[0];
+      if (!g) { g = { name: gname[0].toUpperCase() + gname.slice(1), list: [] }; gs.push(g); }
+      if (!g.list.some(function (p) { return norm(p) === norm(gphrase); })) g.list.push(gphrase);
+      store.set('groups', gs); gphrase = ''; gpf.value = ''; paintGroups();
+    }));
+    s.appendChild(gl);
+    function paintGroups() {
+      gl.innerHTML = '';
+      groups().forEach(function (g) {
+        gl.appendChild(h('div', g.name, 'title'));
+        g.list.forEach(function (p) {
+          var line = row('line'); line.appendChild(h('div', p, 'grow'));
+          line.appendChild(btn('✕', 'x', function () {
+            var gs = groups(); gs.forEach(function (x) { if (x.name === g.name) x.list = x.list.filter(function (y) { return y !== p; }); });
+            store.set('groups', gs.filter(function (x) { return x.list.length; })); paintGroups();
+          }));
+          gl.appendChild(line);
+        });
+      });
+    }
+    paintGroups();
+
     s.appendChild(h('h2', 'Про меня'));
     s.appendChild(h('p', 'То, что ребёнок покажет и скажет незнакомым одним касанием.', 'note'));
     s.appendChild(field(aboutMe(), 'Меня зовут Миша. Я не говорю, но всё понимаю. Я отвечу на телефоне — подождите, пожалуйста.', function (v) { store.set('about', v.trim()); }, true));
+
     s.appendChild(h('h2', 'Голос'));
     voiceControls(s);
-    var wb = btn('', 'wide', function () { store.set('words', !store.get('words', false)); paintWords(); });
-    function paintWords() { var on = store.get('words', false); wb.textContent = (on ? '✓ ' : '') + 'Говорить по словам, пока печатаю'; wb.className = on ? 'main wide' : 'wide'; }
-    paintWords(); s.appendChild(wb);
-    s.appendChild(h('h2', 'Рука и помощь'));
+    s.appendChild(toggle('Говорить по словам, пока печатаю', 'words', false));
+
+    s.appendChild(h('h2', 'Удобство'));
     s.appendChild(handButtons());
+    s.appendChild(toggle('Крупная звезда — больше места для пальца', 'bigStar', false, function () { layout(true); }));
+    s.appendChild(toggle('Звук «пульк» на каждую букву', 'tick', true));
+    s.appendChild(toggle('Спокойный режим: меньше кнопок, мягче голос, без звука букв', 'calm', false));
+
+    s.appendChild(h('h2', 'Помощь'));
     var hr = row();
-    hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(function () { adultScreen(false); }); }));
+    hr.appendChild(btn('Первая проверка: что заметить', '', function () { checkScreen(function () { adultScreen(); }); }));
+    hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(function () { adultScreen(); }); }));
     hr.appendChild(btn('Первый экран', '', welcomeScreen));
     s.appendChild(hr);
-    if (choiceFirst) setTimeout(function () { qf.scrollIntoView({ block: 'center' }); }, 0);
+    if (focus === 'choice') setTimeout(function () { ch.scrollIntoView({ block: 'start' }); }, 0);
+    render();
+  }
+
+  // «Первая проверка»: what to notice in the first ten minutes with the child, and a place for notes to send on
+  var CHECK = [
+    ['До начала', ['Звук включён, телефон заряжен. Пульк на экране «Домой».', 'Пройдите приветствие вместе: рука, голос, имя.', 'Добавьте 2–3 слова в словарь семьи — лучше с фото.']],
+    ['Что заметить', [
+      'Понял ли, куда смотреть: на точку на звезде или на текст сверху?',
+      'Какую руку и какой палец берёт сам? Держит телефон или кладёт на стол?',
+      'Где замер дольше 10 секунд — на каком шаге?',
+      'Какие буквы получаются сразу, а где Пульк помогал («Я помог…»)?',
+      'Как реагирует на голос телефона: радуется, пугается, повторяет?',
+      'Что сказал сам — первое своё слово или выбор?',
+      'Когда устал или отвлёкся — на какой минуте?']],
+    ['После', ['Запишите заметки ниже — коротко, как есть.', 'Кнопка «Скопировать заметки» — и отправьте их тому, кто делает Пульк. Больше ничего не отправляется.']],
+  ];
+  function checkScreen(back) {
+    var s = begin(); s.scrollTop = 0;
+    s.appendChild(btn('← Вернуться', '', back));
+    s.appendChild(h('h1', 'Первая проверка'));
+    s.appendChild(h('p', '10 минут с ребёнком. Ничего не нужно добиваться — нужно заметить.', 'note'));
+    CHECK.forEach(function (sec) {
+      s.appendChild(h('h2', sec[0]));
+      var ul = document.createElement('ul'); ul.className = 'tips';
+      sec[1].forEach(function (x) { ul.appendChild(h('li', x)); }); s.appendChild(ul);
+    });
+    var notes = field(store.get('notes', ''), 'Заметки: что получилось, где замер, что понравилось…', function (v) { store.set('notes', v); }, true);
+    notes.rows = 6; s.appendChild(notes);
+    var w = week(), ok = h('div', '', 'ok');
+    s.appendChild(btn('Скопировать заметки', 'main wide', function () {
+      var t = 'Пульк, первая проверка (' + today() + ')\n' + notes.value + '\n— за неделю сказано ' + w.said + ', новых слов ' + w.fresh + ', капель ' + drops();
+      function fallback() { notes.focus(); notes.select(); ok.textContent = 'Выделено — нажмите «Скопировать».'; }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { ok.textContent = 'Скопировано. Вставьте в сообщение.'; }, fallback); else fallback();
+    }));
+    s.appendChild(ok);
     render();
   }
 
