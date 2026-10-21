@@ -3,6 +3,8 @@
 // worker for offline use) and copy the files the page loads.
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), out = path.join(root, '_site');
+// Пульк в браузере is tested first: a failing test stops the build, so a broken version is never published
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'test-pulk-web.js')], { stdio: 'inherit' });
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
 const BUILD = Date.now().toString(36); // new cache name on every build, so updates reach installed copies
