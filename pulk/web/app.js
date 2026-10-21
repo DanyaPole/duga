@@ -1163,6 +1163,15 @@
     var hr = row(); s.appendChild(hr);
     hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(comfortScreen); }));
     hr.appendChild(btn('Первая проверка', '', function () { checkScreen(comfortScreen); }));
+    // «Передать устройство чистым» (as in the app): for a centre where one tablet goes from child to child
+    s.appendChild(h('h2', 'Передать устройство'));
+    s.appendChild(h('p', 'Сотрёт всё, что Пульк хранит в этом браузере: настройки, фразы, «Про меня», слова семьи и фото, разговор, капли и выученные слова. Как в первый раз.', 'muted'));
+    var sure = false, wipe = btn('Передать устройство чистым', 'wide', function () {
+      if (!sure) { sure = true; wipe.textContent = 'Точно стереть всё? Нажмите ещё раз'; return; }
+      try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('pulk.') === 0) localStorage.removeItem(k); }); } catch (e) {}
+      location.reload();
+    });
+    s.appendChild(wipe);
     render();
   }
 
