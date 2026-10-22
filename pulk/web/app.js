@@ -147,6 +147,7 @@
   // ---- words: the dictionary, this person's own words and pairs (the matching itself is in core.js) ----
   // stop list (stopwords.js): rude and obscene words are never offered — children type here too
   const dicts = {}, next = Object.create(null), bad = P.Stop(window.PULK_STOP);
+  const soft = (window.PULK_STOP && window.PULK_STOP.soft) || {};
   function loadDict(l) {
     if (dicts[l]) return;
     dicts[l] = 'loading';
@@ -241,10 +242,16 @@
   // which letters are hard for this hand: the game brings them more often
   function missed(ch) { ch = ch.toLowerCase(); const st = store.get('letters', {}), v = own(st, ch) || [0, 0]; v[1]++; st[ch] = v; store.set('letters', st); }
   function fixLastWord() {
-    const w = currentWord(), W = words(); if (guided || !W || w.length < 2) return null;
-    const c = W.correction(w, userWords());
-    if (!c || c === w) return null;
-    for (let i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
+    const w = currentWord(), W = words(); if (guided || w.length < 2) return null;
+    const f = fold(w.toLowerCase()), kind = own(soft, f);
+    let c;
+    if (kind && own(userWords(), f) < 2) c = shape(kind, w);   // a rude word: its kinder twin (stopwords.js «soft»)
+    else {
+      if (!W) return null;
+      c = W.correction(w, userWords());
+      if (!c || c === w) return null;
+      for (let i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
+    }
     const before = text; text = text.slice(0, text.length - w.length) + c; return { before: before, word: w, len: c.length };
   }
   function space() {

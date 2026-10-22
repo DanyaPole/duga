@@ -28,6 +28,11 @@ const turn = (deg, sign) => {
 };
 const outBack = (deg) => { const a = deg * P.DEG, o = []; for (const r of [0, 20, 40, 55, 40, 20, 5]) o.push([Math.cos(a) * r, Math.sin(a) * r]); return at(o); };
 
+test('a rude word has a kind twin that is itself allowed', () => {
+  const soft = box.window.PULK_STOP.soft; ok(soft && soft['дурак'] && soft['дура'], '«дурак», «дура»');
+  for (const k in soft) { eq(k, P.fold(k.toLowerCase()), 'key «' + k + '»'); ok(!bad(soft[k]), '«' + soft[k] + '» is not on the stop list'); ok(soft[k] !== k, k); }
+});
+
 test('the data shared with the app is whole', () => {
   eq(D.RU.length, 8, 'RU petals'); D.RU.forEach((p, i) => eq(p.length, 4, 'petal ' + i));
   const letters = [].concat(...D.RU).filter(Boolean).join('');

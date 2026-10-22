@@ -35,5 +35,12 @@ window.PULK_STOP = {
   parts: [
     // en
     'fuck', 'shit', 'bitch', 'cunt', 'whore', 'slut', 'nigg', 'fagg', 'porn', 'wank', 'asshole', 'dickhead', 'cocksuck', 'goddamn',
-  ],
+  ],  // rude words that people do say: a finished one is replaced by a kinder word of the same meaning, lit up like a
+  // correction; ⌫ right after brings the person's own word back, and then Пульк leaves that word alone
+  soft: {
+    'дурак': 'глупый', 'дура': 'глупая', 'дураки': 'глупые', 'дурака': 'глупого', 'дурой': 'глупой',
+    'идиот': 'глупый', 'идиотка': 'глупая', 'идиоты': 'глупые', 'дебил': 'глупый', 'дебилы': 'глупые',
+    'придурок': 'чудак', 'придурки': 'чудаки', 'тупой': 'глупый', 'тупая': 'глупая', 'тупые': 'глупые',
+    'урод': 'плохой', 'уроды': 'плохие', 'сволочь': 'плохой', 'гад': 'вредный', 'гадина': 'вредная',
+  },
 };
