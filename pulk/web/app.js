@@ -683,6 +683,8 @@
       card.appendChild(btn('Готово — убрать выбор', 'wide quiet', function () { store.set('choice', null); speakScreen(true); }));
       s.appendChild(card);
     }
+    // named, as in the lesson: six bare buttons on top read as part of something else
+    s.appendChild(h('h2', 'Быстрые ответы', 'top'));
     const g = row('answers');
     D.quick.forEach(function (p) { g.appendChild(btn(p.split(',')[0], '', function () { say(p); logSaid(0); talk('me', p); })); });
     s.appendChild(g);
@@ -1271,7 +1273,7 @@
   // first one straight stroke, then a word of straight strokes, only then a stroke with a turn.
   const LESSON = [
     { t: 'Коснись «Да»', n: 'Телефон скажет «да».', kind: 'tap', want: 'Да' },
-    { t: 'Теперь коснись «Нет»', kind: 'tap', want: 'Нет' },
+    { t: 'Теперь коснись «Нет»', n: '«Да» и «Нет» — быстрые ответы. Они всегда наверху во вкладке «Говорить».', kind: 'tap', want: 'Нет' },
     { t: 'Первая буква — «а»', n: 'Смотри на звезду внизу: бежит точка. Проведи пальцем так же — вверх. Начинать можно где угодно на звезде.', kind: 'guide', want: 'а' },
     { t: 'Слово «нет»', n: 'Три буквы — три движения. Точка показывает каждое.', kind: 'guide', want: 'нет' },
     { t: 'Выбери «Хочу пить»', kind: 'pick', want: 'Хочу пить' },
