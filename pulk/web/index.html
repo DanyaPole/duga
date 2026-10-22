@@ -38,7 +38,7 @@
   button.wide { width: 100%; margin-top: 8px; }
   .scroll button { flex: 0 0 auto; }
   .compose { position: sticky; bottom: -8px; z-index: 1; background: var(--bg); padding: 6px 0 8px; }
-  .row.acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .row.acts button { padding: 0 4px; font-size: 15px; }
+  .row.acts { display: grid; grid-template-columns: repeat(4, 1fr) 44px; gap: 6px; } .row.acts button.kb { padding: 0; font-size: 20px; } .row.acts button { padding: 0 4px; font-size: 15px; }
   .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .picks button { min-height: 52px; padding: 4px 8px; line-height: 1.2; }
   .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .answers button { min-height: 52px; padding: 0 4px; font-weight: 600; }
@@ -54,7 +54,8 @@
   input[type=text], textarea { width: 100%; margin-top: 8px; font: inherit; min-height: 48px; font-size: 16px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; -webkit-user-select: text; user-select: text; }
   /* the first visit: no keyboard yet, only the welcome */
   body.welcome #chips, body.welcome #tabs, body.welcome #kbd { display: none; }
-  body.nostar #chips, body.nostar #kbd { display: none; }
+  body.nostar #chips, body.nostar #kbd, body.syskbd #kbd { display: none; }
+  #text input.sys { margin: 0; padding: 0; border: 0; min-height: 0; background: transparent; font: inherit; color: inherit; outline: none; }
   .hello { display: flex; gap: 14px; align-items: center; margin: 4px 0 4px; }
   .hello img { width: 60px; height: 60px; border-radius: 16px; }
   .hello h1 { font-size: 30px; margin: 0; } .hello .note { margin: 2px 0 0; }

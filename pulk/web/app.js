@@ -200,9 +200,31 @@
     // the star and the word chips only where they type something: not over the pond or the adult's forms
     document.body.classList.toggle('nostar', !$('text') && !game && !probe);
     var t = $('text'); if (!t) { paintLabels(); return; }   // no text on this screen, but the star's keys still change
+    if (sysKbd) { sysField(t); paintLabels(); chipsSoon(); return; }
     t.textContent = text; var c = document.createElement('span'); c.className = 'caret'; t.appendChild(c);
     if (guided) { var rest = guided.word.slice(guided.i), r = document.createElement('span'); r.className = 'rest'; r.textContent = caps() ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest; t.appendChild(r); }
     paintLabels(); chipsSoon();
+  }
+  // «⌨ Обычная»: the phone's own keyboard instead of the star, into the same phrase (for the adult, or a day the star is
+  // not right); the star comes back with «★ Звезда» or on any other screen
+  var sysKbd = false;
+  function sysField(t) {
+    var f = t.querySelector('input');
+    if (!f) {
+      t.textContent = ''; f = document.createElement('input'); f.type = 'text'; f.className = 'sys'; f.setAttribute('autocomplete', 'off');
+      f.placeholder = t.getAttribute('data-hint') || '';
+      f.oninput = function () { text = f.value; lastFix = null; chipsSoon(); };
+      f.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (onEnter) onEnter(); } };
+      t.appendChild(f);
+    }
+    if (f.value !== text) f.value = text;
+    return f;
+  }
+  function setSysKbd(on) {
+    sysKbd = on; document.body.classList.toggle('syskbd', on);
+    var t = $('text'); if (t && !on) t.textContent = '';
+    render();
+    if (on && t) sysField(t).focus();   // in the same touch: only then does iPhone open its keyboard
   }
   var chipsFrame = 0;
   function chipsSoon() { if (!chipsFrame) chipsFrame = requestAnimationFrame(function () { chipsFrame = 0; paintChips(); }); }
@@ -447,7 +469,11 @@
 
   // the row above the tabs: the screen's main action (under the thumb, never scrolled away), whole phrases, words
   var chipMode = 'speak', chipAction = null;
-  function chip(label, cls, fn) { var b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; return b; }
+  function chip(label, cls, fn) {
+    var b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn;
+    b.onmousedown = function (e) { if (sysKbd) e.preventDefault(); };   // a word chip must not close the phone's keyboard
+    return b;
+  }
   function paintChips() {
     var box = $('chips'); box.innerHTML = ''; if (!$('text')) return;
     if (chipAction && (!chipAction.ifText || text.trim())) box.appendChild(chip(chipAction.label, 'main', chipAction.fn));
@@ -569,6 +595,7 @@
   });
   function begin(mode) {   // every screen starts clean: no guide, no game, no leftover action or Enter
     talking = false; game = null; probe = null; document.body.classList.remove('talking');
+    if (sysKbd && mode !== 'speak') { sysKbd = false; document.body.classList.remove('syskbd'); }   // lessons and games need the star
     var s = $('screen'); s.innerHTML = ''; chipMode = mode || 'none'; chipAction = null; onEnter = null; guided = null; showGuide(null); return s;
   }
 
@@ -632,6 +659,8 @@
       store.set('mine', [t].concat(mine().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 60)); sitName = 'Мои'; text = ''; speakScreen(true);
     }));
     r.appendChild(btn('Стереть', '', function () { text = ''; lastFix = null; render(); }));
+    var kb = btn(sysKbd ? '★' : '⌨', 'kb', function () { setSysKbd(!sysKbd); kb.textContent = sysKbd ? '★' : '⌨'; kb.setAttribute('aria-label', sysKbd ? 'Звезда' : 'Обычная клавиатура'); });
+    kb.setAttribute('aria-label', sysKbd ? 'Звезда' : 'Обычная клавиатура'); r.appendChild(kb);
     cmp.appendChild(r);
     s.appendChild(h('h2', 'Фразы'));
     s.appendChild(cats); s.appendChild(list);
