@@ -268,7 +268,7 @@
   }
 
   // ---- «Толчки»: the cutting into jabs is in core.js ----
-  function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game; }
+  function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game && !probe; }   // the hand check needs the whole stroke
 
   // ---- a steadier hand (as Pulse.Steady): tremor smoothed with the 1€ filter (Casiez, Roussel, Vogel, CHI 2012) —
   // strong smoothing while the finger moves slowly or rests, almost none in a quick stroke; and strokes measured
@@ -564,6 +564,16 @@
   let tab = 'speak';
   function btn(label, cls, fn) { return chip(label, cls, fn); }
   function h(tag, txt, cls) { const e = document.createElement(tag); e.textContent = txt; if (cls) e.className = cls; return e; }
+  // a delete that a shaking hand can touch by accident: the first touch asks, the second (within 4 s) removes
+  function sureBtn(label, cls, fn) {
+    let armed = 0;
+    const b = btn(label, cls, function () {
+      if (Date.now() - armed < 4000) { armed = 0; fn(); return; }
+      armed = Date.now(); b.textContent = 'Убрать? Ещё раз'; b.classList.add('urgent');
+      setTimeout(function () { if (armed && Date.now() - armed >= 4000) { armed = 0; b.textContent = label; b.classList.remove('urgent'); } }, 4100);
+    });
+    return b;
+  }
   function row(cls) { const r = document.createElement('div'); r.className = cls || 'row'; return r; }
   function dots(n, at, label) { const d = h('div', '', 'dots'), b = document.createElement('b'); for (let i = 0; i < n; i++) b.textContent += i < at ? '●' : i === at ? '◉' : '○'; d.appendChild(b); d.appendChild(document.createTextNode(label)); return d; }
   function textBox(hint) { const t = document.createElement('div'); t.id = 'text'; t.setAttribute('data-hint', hint); return t; }
@@ -682,7 +692,7 @@
       cur[1].forEach(function (p) {
         const line = row('line');
         line.appendChild(btn(p, 'wide', function () { say(p); remember(p); talk('me', p); }));
-        if (cur[0] === 'Мои') line.appendChild(btn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); paintSit(); }));
+        if (cur[0] === 'Мои') line.appendChild(sureBtn('✕', 'x', function () { store.set('mine', mine().filter(function (q) { return q !== p; })); paintSit(); }));
         list.appendChild(line);
       });
     }
@@ -722,7 +732,7 @@
     screenAt('talk', talkScreen);
     const top = row();
     top.appendChild(btn('← Говорить', '', function () { speakScreen(true); }));
-    top.appendChild(btn('Новый разговор', 'quiet', function () { store.set('talk', []); talkScreen(); }));
+    top.appendChild(sureBtn('Новый разговор', 'quiet', function () { store.set('talk', []); talkScreen(); }));
     s.appendChild(top);
     let feed = h('div', '', 'feed'), list = store.get('talk', []).slice(-40), lastDay = '';
     if (!list.length) feed.appendChild(h('p', 'Здесь будет разговор по очереди: вопросы взрослого — слева, ответы — справа, крупно. Касание повторяет фразу вслух.', 'muted'));
@@ -1090,9 +1100,14 @@
     function paintFamily() {
       fl.innerHTML = '';
       family().forEach(function (f) {
-        fl.appendChild(photoButton(f.w + ' ✕', f.img, '', function () { store.set('family', family().filter(function (x) { return x !== f; })); paintFamily(); }));
+        let armed = 0;
+        const fb = photoButton(f.w + ' ✕', f.img, '', function () {
+          if (Date.now() - armed < 4000) { store.set('family', family().filter(function (x) { return x !== f; })); paintFamily(); return; }
+          armed = Date.now(); fb.lastChild.textContent = 'Убрать? Ещё раз'; fb.classList.add('urgent');   // a photo is hard to bring back
+        });
+        fl.appendChild(fb);
       });
-      if (family().length) fl.appendChild(h('p', 'Касание по слову здесь — убрать его.', 'muted'));
+      if (family().length) fl.appendChild(h('p', 'Два касания по слову здесь — убрать его.', 'muted'));
     }
     paintFamily();
 
@@ -1116,7 +1131,7 @@
         gl.appendChild(h('div', g.name, 'title'));
         g.list.forEach(function (p) {
           const line = row('line'); line.appendChild(h('div', p, 'grow'));
-          line.appendChild(btn('✕', 'x', function () {
+          line.appendChild(sureBtn('✕', 'x', function () {
             const gs = groups(); gs.forEach(function (x) { if (x.name === g.name) x.list = x.list.filter(function (y) { return y !== p; }); });
             store.set('groups', gs.filter(function (x) { return x.list.length; })); paintGroups();
           }));
