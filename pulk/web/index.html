@@ -94,6 +94,9 @@
   #chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px max(12px, env(safe-area-inset-left, 0px)); min-height: 60px; align-items: center; scrollbar-width: none; }
   #chips:empty { min-height: 0; padding: 0; }
   #chips button { flex: 0 0 auto; border-radius: 24px; }
+  /* «Сказать» right above the thumb: at the star's side of the row, and it stays there when the words scroll */
+  #chips button.main { order: 99; margin-left: auto; position: sticky; right: 0; min-width: 120px; box-shadow: -10px 0 0 var(--bg); }
+  body.left-hand #chips button.main { order: -1; margin-left: 0; right: auto; left: 0; box-shadow: 10px 0 0 var(--bg); }
   #tabs { display: flex; gap: 4px; padding: 0 max(8px, env(safe-area-inset-left, 0px)); }
   #tabs button { flex: 1; min-height: 40px; padding: 0 4px; font-size: 14px; border-radius: 12px; }
   #tabs button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }

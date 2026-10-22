@@ -49,7 +49,7 @@
     // must not be redrawn for it
     var de = document.documentElement, nw = de.clientWidth || window.innerWidth, nh = de.clientHeight || window.innerHeight;
     if (!force && W === nw && VH === nh) return;
-    W = nw; VH = nh; readColours();
+    W = nw; VH = nh; readColours(); document.body.classList.toggle('left-hand', left);
     // the big star takes more of the screen: more room for a thumb that does not land precisely
     var big = store.get('bigStar', false);
     K = Math.min(Math.min(W, big ? 520 : 440) / (OUTER * (big ? 0.98 : 1.047)), (W - 2) / OUTER, VH * (big ? 0.5 : 0.42) / (OUTER + 4));
