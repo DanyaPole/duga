@@ -7,8 +7,8 @@ const root = path.join(__dirname, '..');
 const box = { window: {}, Math, Object, Array, JSON, isNaN };
 box.globalThis = box.window;
 vm.createContext(box);
-for (const f of ['pulk/web/data.js', 'pulk/web/core.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), box, { filename: f });
-const D = box.window.PULK, P = box.window.PulkCore;
+for (const f of ['pulk/web/data.js', 'pulk/web/stopwords.js', 'pulk/web/core.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), box, { filename: f });
+const D = box.window.PULK, P = box.window.PulkCore, bad = P.Stop(box.window.PULK_STOP);
 
 let failed = 0, passed = 0;
 function test(name, fn) {
@@ -93,6 +93,39 @@ const appSource = fs.readFileSync(path.join(root, 'pulk/web/app.js'), 'utf8');
 test('left-hand layout puts «Сказать» at the left edge', () => {
   const html = fs.readFileSync(path.join(root, 'pulk/web/index.html'), 'utf8');
   ok(/body\.left-hand #chips button\.main[^}]*order:\s*-1[^}]*left:\s*0/.test(html), 'left-hand main action rule');
+});
+
+// the stop list: children use Пульк too, so rude, obscene and sexual words are never offered
+test('the stop list catches rude words and lets harmless look-alikes through', () => {
+  for (const w of ['сука', 'Хуй', 'нахуй', 'охуенно', 'пиздец', 'блядь', 'ёбаный', 'отъебись', 'засранец', 'говно', 'жопа', 'шлюха', 'секс', 'трахнуть', 'сдохни', 'порно', 'fuck', 'motherfucker', 'bullshit', 'sexy'])
+    ok(bad(w), '«' + w + '» is not caught');
+  for (const w of ['ребёнок', 'небо', 'тебе', 'себе', 'себастьян', 'команда', 'мандарин', 'страх', 'страховка', 'хлеб', 'художник', 'похуже', 'колебания', 'учебник', 'требовать', 'психушке', 'хулиган', 'марихуана', 'трахея', 'упорно', 'упорный', 'член', 'дурак', 'cocktail', 'scrap', 'peacock', 'essex', 'hitchcock', 'dickens'])
+    ok(!bad(w), '«' + w + '» is caught by mistake');
+});
+const dictEn = fs.readFileSync(path.join(root, 'dict_en.txt'), 'utf8').split(/\r?\n/), WE = new P.Words(dictEn, D.EN, bad);
+const Wc = new P.Words(dict, D.RU, bad);
+test('no stop-list word is suggested or corrected into, whatever is typed', () => {
+  const user = { 'сука': 5, 'жопа': 3, 'миша': 3 };
+  let checked = 0;
+  [[dict, Wc], [dictEn, WE]].forEach(([list, Ws]) => list.forEach(w => {
+    w = w.trim(); if (!w || !bad(w)) return;
+    for (let n = 1; n <= w.length; n++) { const got = Ws.suggest(w.slice(0, n), 4, user).filter(bad); eq(got, [], 'after «' + w.slice(0, n) + '»'); checked++; }
+    eq(Ws.correction(w, user), null, '«' + w + '» typed on purpose stays');
+  }));
+  ok(checked > 500, 'the dictionaries hold rude words to check: ' + checked);
+  eq(Wc.suggest('ми', 3, user)[0], 'миша', 'own harmless words are still offered');
+  eq(Wc.suggest('прив', 3, {})[0], 'привет', 'ordinary words are still offered');
+});
+test('no stop-list word is offered as the next word', () => {
+  const next = Object.create(null);
+  fs.readFileSync(path.join(root, 'pulk/web/next_ru.txt'), 'utf8').split(/\r?\n/).forEach(l => { const i = l.indexOf('\t'); if (i > 0) next[l.slice(0, i)] = l.slice(i + 1).split(' '); });
+  const start = appSource.indexOf('  function nextWords(prev) {'), end = appSource.indexOf('  function currentWord', start);
+  ok(start >= 0 && end > start, 'nextWords source is present');
+  const pairs = { 'ты': { 'сука': 4, 'молодец': 3 } };
+  const nextWords = new Function('fold', 'own', 'store', 'next', 'bad', appSource.slice(start, end) + 'return nextWords;')(P.fold, P.own, { get: k => k === 'pairs' ? pairs : {} }, next, bad);
+  ok(Object.keys(next).some(k => next[k].some(bad)), 'next_ru.txt holds rude words to check');
+  for (const k in next) eq(nextWords(k).filter(bad), [], 'after «' + k + '»');
+  eq(nextWords('ты')[0], 'молодец', 'the person\'s harmless pairs still come first');
 });
 
 function storeFrom(value) {
