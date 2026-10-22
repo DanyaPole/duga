@@ -569,22 +569,25 @@
   function textBox(hint) { var t = document.createElement('div'); t.id = 'text'; t.setAttribute('data-hint', hint); return t; }
   function field(value, placeholder, onInput, multi) {
     var f = document.createElement(multi ? 'textarea' : 'input'); if (multi) f.rows = 3; else f.type = 'text';
-    f.value = value; f.placeholder = placeholder; f.setAttribute('autocomplete', 'off');   // no «Автозаполнить контакт» f.oninput = function () { onInput(f.value); }; return f;
+    f.value = value; f.placeholder = placeholder; f.setAttribute('autocomplete', 'off');   // no «Автозаполнить контакт»
+    f.oninput = function () { onInput(f.value); }; return f;
   }
   // «Назад»: the phone's back gesture (and the browser's button) goes to the previous screen of Пульк, not off the
   // page. Each screen marks itself; a screen already on the way back is returned to, not stacked again
   // (window.history: inside this file, history() is the list of said phrases)
-  var visited = [], restoring = false, ignorePops = 0, bigOpen = false;
+  var visited = [], restoring = false, ignorePops = 0, waitingPushes = 0, bigOpen = false;
   function screenAt(name, show) {
     var e = { name: name, show: show, tab: tab, welcome: document.body.classList.contains('welcome') };
     if (restoring) { visited[visited.length - 1] = e; return; }
     for (var i = visited.length - 1; i >= 0 && visited[i].name !== name; i--) {}
     if (i >= 0) { var drop = visited.length - 1 - i; visited.length = i + 1; visited[i] = e; if (drop) { ignorePops++; window.history.go(-drop); } return; }
     visited.push(e);
-    if (visited.length > 1) try { window.history.pushState({ pulk: visited.length }, ''); } catch (x) {}
+    if (visited.length > 1) push();
   }
+  // a step back the page asked for lands a moment later: a screen opened meanwhile is added only after it
+  function push() { if (ignorePops) { waitingPushes++; return; } try { window.history.pushState({ pulk: visited.length }, ''); } catch (x) {} }
   window.addEventListener('popstate', function () {
-    if (ignorePops) { ignorePops--; return; }
+    if (ignorePops) { if (!--ignorePops) for (; waitingPushes; waitingPushes--) push(); return; }
     if (bigOpen) { closeBig(); return; }
     if (visited.length < 2) return;
     visited.pop(); var e = visited[visited.length - 1];
