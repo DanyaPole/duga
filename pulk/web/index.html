@@ -94,7 +94,8 @@
   @keyframes float { 50% { transform: translateY(-8px); } }
   @keyframes pop { to { transform: scale(1.5); opacity: 0; } }
   @keyframes wobble { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-  @media (prefers-reduced-motion: reduce) { .bubble-l, .bubble-l.wobble { animation: none; } .bubble-l.pop { animation-duration: .01s; } }
+  #kbd .petal, #kbd .drop { transition: transform .09s ease-out; }
+  @media (prefers-reduced-motion: reduce) { #kbd .petal, #kbd .drop { transition: none; } .bubble-l, .bubble-l.wobble { animation: none; } .bubble-l.pop { animation-duration: .01s; } }
   .warn { color: var(--urgent); font-size: 14px; margin: 6px 0; }
   /* «Крупный текст» */
   body.big-text #screen { font-size: 19px; } body.big-text h1 { font-size: 27px; } body.big-text #text { font-size: 32px; }

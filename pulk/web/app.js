@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const D = window.PULK, DEG = Math.PI / 180;
-  const P = window.PulkCore, own = P.own, R = P.R, PAD = P.PAD, OUTER = P.OUTER, P_MIN = P.P_MIN, P_TURN = P.P_TURN, HOLD_MS = P.HOLD_MS, PH = P.PH, KINDS = P.KINDS, SPOT = P.SPOT, ALT = P.ALT, SPACE = P.SPACE, spot = P.spot, petalOf = P.petalOf, slot = P.slot, tap = P.tap, resolve = P.resolve, KEYS = P.KEYS, hit = P.hit, fold = P.fold, shape = P.shape, Words = P.Words, JAB_OUT = P.JAB_OUT, JAB_HOME = P.JAB_HOME, JAB_SHORT = P.JAB_SHORT, Jabs = P.Jabs, jab = P.jab, alpha = P.alpha, OneEuro = P.OneEuro;
+  const P = window.PulkCore, own = P.own, R = P.R, PAD = P.PAD, OUTER = P.OUTER, P_MIN = P.P_MIN, P_TURN = P.P_TURN, HOLD_MS = P.HOLD_MS, PH = P.PH, KINDS = P.KINDS, SPOT = P.SPOT, ALT = P.ALT, SPACE = P.SPACE, spot = P.spot, petalOf = P.petalOf, slot = P.slot, tap = P.tap, resolve = P.resolve, KEYS = P.KEYS, hit = P.hit, fold = P.fold, shape = P.shape, Words = P.Words, JAB_OUT = P.JAB_OUT, JAB_HOME = P.JAB_HOME, JAB_SHORT = P.JAB_SHORT, Jabs = P.Jabs, jab = P.jab, alpha = P.alpha, OneEuro = P.OneEuro, lean = P.lean;
   const $ = function (id) { return document.getElementById(id); };
   // localStorage, read once per key: screens ask for the same lists on every keystroke
   const memo = Object.create(null);
@@ -41,7 +41,7 @@
     const cs = getComputedStyle(document.documentElement);
     ['ink', 'muted', 'accent', 'on-accent', 'petal', 'press', 'zone', 'line', 'glass'].forEach(function (n) { C[n] = cs.getPropertyValue('--' + n).trim(); });
   }
-  let petals = [], labels = [], keyEls = {}, bubble, bubbleText, trail, lit = -2, labelsKey = '', relayout = false;
+  let petals = [], lifts = [], labels = [], keyEls = {}, drop0, dropAt = [0, 0], bubble, bubbleText, trail, lit = -2, labelsKey = '', relayout = false;
   const guide = { path: null, dot: null, pts: null, len: 0, raf: 0, t0: 0, target: -1 };
   function layout(force) {
     if (touch) { relayout = true; return; }   // never move the star under a finger mid-stroke
@@ -56,7 +56,7 @@
     K = Math.max(K, 0.3);   // a page opened hidden reports no height: never draw the star inside out
     H = Math.ceil(OUTER * K + 4); CX = W + 4; CY = H + 4;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('height', H);
-    svg.innerHTML = ''; petals = []; labels = []; keyEls = {}; lit = -2; labelsKey = '';
+    svg.innerHTML = ''; petals = []; lifts = []; labels = []; keyEls = {}; lit = -2; labelsKey = '';
     const fs = Math.max(K, 0.85);
     KEYS.forEach(function (k) {
       const poly = el('polygon', { points: arcPts(k.r0 + 3, k.r1 - 3, k.a0 + 0.8, k.a1 - 0.8), fill: C.glass, stroke: C.line, 'stroke-width': 1, 'stroke-linejoin': 'round' });
@@ -67,7 +67,10 @@
       const g = 1.6 / R / DEG, gi = 1.6 / 18 / DEG, pts = [];
       for (let i = 0; i <= 8; i++) { const a = (p * 45 - 22.5 + g + (45 - 2 * g) * i / 8) * DEG; pts.push(scr(PH[0] + (R - 1) * Math.cos(a), PH[1] + (R - 1) * Math.sin(a))); }
       for (let j = 8; j >= 0; j--) { const b = (p * 45 - 22.5 + gi + (45 - 2 * gi) * j / 8) * DEG; pts.push(scr(PH[0] + 18 * Math.cos(b), PH[1] + 18 * Math.sin(b))); }
-      petals.push(el('polygon', { points: pts.map(xy).join(' '), fill: C.petal, stroke: C.line, 'stroke-width': 1, 'stroke-linejoin': 'round' }));
+      petals.push(el('polygon', { class: 'petal', points: pts.map(xy).join(' '), fill: C.petal, stroke: C.line, 'stroke-width': 1, 'stroke-linejoin': 'round' }));
+      // the pressed petal lifts a little outwards, towards its letters (like the app)
+      const o = scr(PH[0], PH[1]), q = scr(PH[0] + 6 * Math.cos(p * 45 * DEG), PH[1] + 6 * Math.sin(p * 45 * DEG));
+      lifts.push('translate(' + (q[0] - o[0]).toFixed(1) + 'px,' + (q[1] - o[1]).toFixed(1) + 'px)');
     }
     for (let pp = 0; pp < 8; pp++) for (let kk = 0; kk < 4; kk++) {
       const q = scr.apply(null, spot(pp, KINDS[kk]));
@@ -75,12 +78,12 @@
         'font-size': (kk === 0 ? 24 : kk === 3 ? 12 : 15) * fs, 'font-weight': kk === 0 ? 700 : 400 }) });
     }
     const c = scr(PH[0], PH[1]);
-    el('circle', { cx: c[0], cy: c[1], r: 13 * K, fill: C.accent });
+    drop0 = el('circle', { class: 'drop', cx: c[0], cy: c[1], r: 13 * K, fill: C.accent }); dropAt = [0, 0];
     trail = el('polyline', { points: '', fill: 'none', stroke: C.accent, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.6 });
     guide.path = el('polyline', { points: '', fill: 'none', stroke: C.accent, 'stroke-width': 3, 'stroke-dasharray': '6 7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.7, visibility: 'hidden' });
     guide.dot = el('circle', { cx: 0, cy: 0, r: 12 * fs, fill: C.accent, stroke: C['on-accent'], 'stroke-width': 3, visibility: 'hidden' });
-    bubble = el('circle', { cx: c[0], cy: c[1], r: 26, fill: C.accent, visibility: 'hidden' });
-    bubbleText = el('text', { x: c[0], y: c[1], 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: C['on-accent'], 'font-size': 30, 'font-weight': 800, visibility: 'hidden' });
+    bubble = el('circle', { class: 'drop', cx: c[0], cy: c[1], r: 26, fill: C.accent, visibility: 'hidden' });
+    bubbleText = el('text', { class: 'drop', x: c[0], y: c[1], 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: C['on-accent'], 'font-size': 30, 'font-weight': 800, visibility: 'hidden' });
     paintLabels();
     showGuide(guided ? guided.word[guided.i] : null);
   }
@@ -100,8 +103,17 @@
     lit = p;
     petals.forEach(function (e, i) {
       e.setAttribute('fill', i === p ? C.press : i === guide.target ? C.zone : C.petal);
+      e.style.transform = i === p ? lifts[i] : '';
       e.setAttribute('stroke', i === guide.target ? C.accent : C.line); e.setAttribute('stroke-width', i === guide.target ? 2.5 : 1);
     });
+  }
+
+  // the drop (and the letter bubble over it) leans after the finger, in screen pixels; back when the finger lifts
+  function leanTo(q) {
+    const c = scr(PH[0], PH[1]), d = q ? lean(q[0] - c[0], q[1] - c[1]) : [0, 0];
+    if (!drop0 || (Math.abs(d[0] - dropAt[0]) < 0.3 && Math.abs(d[1] - dropAt[1]) < 0.3)) return;
+    dropAt = d; const tf = d[0] || d[1] ? 'translate(' + d[0].toFixed(1) + 'px,' + d[1].toFixed(1) + 'px)' : '';
+    drop0.style.transform = bubble.style.transform = bubbleText.style.transform = tf;
   }
 
   // ---- the guide: a dot that runs the needed stroke on the star, again and again, until the finger repeats it ----
@@ -334,11 +346,11 @@
     if (touch.steady) b = touch.steady.at(b[0], b[1], e.timeStamp || Date.now());
     if (touch.jabs) {
       const done = touch.jabs.add(b[0], b[1]);
-      if (done) { jabbed(jab(table(), done).v); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden'); touch.shown = ''; return; }
+      if (done) { jabbed(jab(table(), done).v); light(-1); leanTo(null); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden'); touch.shown = ''; return; }
       const cur = touch.jabs.cur; if (!cur.length) return;
       const js = jab(table(), cur), pts = [];
       for (let i = 0; i < cur.length; i += 2) pts.push(xy(scr(cur[i], cur[i + 1])));
-      light(js.petal); trail.setAttribute('points', pts.join(' '));
+      light(js.petal); trail.setAttribute('points', pts.join(' ')); leanTo(scr(cur[cur.length - 2], cur[cur.length - 1]));
       const jshown = caps() && !symbols ? js.v.toUpperCase() : js.v;
       if (jshown !== touch.shown) { touch.shown = jshown; bubbleText.textContent = jshown; bubble.setAttribute('visibility', 'visible'); bubbleText.setAttribute('visibility', 'visible'); }
       return;
@@ -346,7 +358,7 @@
     touch.pts.push(b[0], b[1]); touch.trail.push(xy(scr(b[0], b[1])));
     if (Math.hypot(b[0] - touch.ax, b[1] - touch.ay) > 4) { touch.ax = b[0]; touch.ay = b[1]; touch.still = Date.now(); }
     const s = resolve(table(), touch.pts);
-    light(s.petal);
+    light(s.petal); leanTo(scr(b[0], b[1]));
     trail.setAttribute('points', touch.trail.join(' '));
     let shown = s.petal < 0 ? '·' : (Date.now() - touch.still > HOLD_MS && ALT[s.v] ? ALT[s.v] : s.v);
     if (caps() && !symbols) shown = shown.toUpperCase();
@@ -358,7 +370,7 @@
     const t = touch; touch = null;
     if (t.ignored) return;
     const tooShort = !probe && Date.now() - t.start < guardMin(); lastEnd = Date.now();   // the hand check measures every touch
-    clearTimeout(t.rep); light(-1); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden');
+    clearTimeout(t.rep); light(-1); leanTo(null); trail.setAttribute('points', ''); bubble.setAttribute('visibility', 'hidden'); bubbleText.setAttribute('visibility', 'hidden');
     if (relayout) { relayout = false; layout(true); }
     if (cancelled || tooShort) return;
     if (t.key && t.key.fn === 'bksp') { if (guardMin() && !t.repeated && !guided) backspace(); return; }
