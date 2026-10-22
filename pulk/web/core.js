@@ -173,6 +173,17 @@
     return s;
   }
 
+  // «Пузыри» for «Толчки»: simple words to pop with one touch each. Like the letter game, the big letters first
+  // (one straight jab), then the short jabs, then the jabs with a turn; a level gives only words its letters can type
+  const JAB_WORDS = ['нос', 'сон', 'рот', 'сто', 'три', 'рис', 'она', 'они', 'оса', 'нет', 'торт', 'сено', 'нота', 'роса', 'нора', 'тесто', 'сирена',
+    'шар', 'нож', 'щит', 'щи', 'жена', 'шина', 'отец', 'цена', 'это', 'шарф', 'жара', 'наш',
+    'да', 'мама', 'папа', 'дом', 'кот', 'мяч', 'сок', 'суп', 'хлеб', 'вода', 'лук', 'чай', 'мир', 'лес', 'день', 'ночь', 'утро', 'рука', 'небо', 'друг', 'кошка', 'книга', 'привет', 'спасибо'];
+  function jabWords(t, level) {
+    const kinds = [[0], [0, 3], [0, 3, 1, 2]][level], ok = {};
+    for (let p = 0; p < 8; p++) kinds.forEach(function (k) { if (t[p][k]) ok[t[p][k]] = 1; });
+    return JAB_WORDS.filter(function (w) { for (let i = 0; i < w.length; i++) if (!ok[w[i]]) return false; return true; });
+  }
+
   // ---- the 1€ filter (Casiez, Roussel, Vogel, CHI 2012), one coordinate ----
   function alpha(cut, dt) { const tau = 1 / (2 * Math.PI * cut); return 1 / (1 + tau / dt); }
   function OneEuro(minCut, beta) { this.minCut = minCut; this.beta = beta; this.x0 = NaN; this.dx0 = 0; this.t0 = 0; }
@@ -185,5 +196,5 @@
     return this.x0;
   };
 
-  root.PulkCore = { DEG: DEG, own: own, R: R, PAD: PAD, OUTER: OUTER, P_MIN: P_MIN, P_TURN: P_TURN, HOLD_MS: HOLD_MS, PH: PH, KINDS: KINDS, SPOT: SPOT, ALT: ALT, SPACE: SPACE, spot: spot, petalOf: petalOf, slot: slot, tap: tap, resolve: resolve, KEYS: KEYS, hit: hit, fold: fold, shape: shape, Stop: Stop, Words: Words, JAB_OUT: JAB_OUT, JAB_HOME: JAB_HOME, JAB_SHORT: JAB_SHORT, Jabs: Jabs, jab: jab, alpha: alpha, OneEuro: OneEuro };
+  root.PulkCore = { DEG: DEG, own: own, R: R, PAD: PAD, OUTER: OUTER, P_MIN: P_MIN, P_TURN: P_TURN, HOLD_MS: HOLD_MS, PH: PH, KINDS: KINDS, SPOT: SPOT, ALT: ALT, SPACE: SPACE, spot: spot, petalOf: petalOf, slot: slot, tap: tap, resolve: resolve, KEYS: KEYS, hit: hit, fold: fold, shape: shape, Stop: Stop, Words: Words, JAB_OUT: JAB_OUT, JAB_HOME: JAB_HOME, JAB_SHORT: JAB_SHORT, Jabs: Jabs, jab: jab, JAB_WORDS: JAB_WORDS, jabWords: jabWords, alpha: alpha, OneEuro: OneEuro };
 })(typeof window !== 'undefined' ? window : globalThis);

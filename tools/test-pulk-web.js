@@ -66,6 +66,28 @@ test('«Толчки»: each jab out and back is a letter, a short one the centr
   eq(got, [D.RU[0][0], D.RU[1][0], D.RU[2][3]]);
 });
 
+test('«Пузыри» for «Толчки»: every word is typed by one touch of jabs, each level has enough words', () => {
+  const where = {}; D.RU.forEach((p, i) => p.forEach((c, k) => { if (c) where[c] = [i, k]; }));
+  for (const w of P.JAB_WORDS) {
+    const j = new P.Jabs(0, 0), got = [], pts = [];
+    for (const c of w) {
+      ok(where[c], 'no stroke for «' + c + '» in «' + w + '»');
+      const [p, k] = where[c], a = p * 45 * P.DEG, len = k === 3 ? 22 : 50, o = [];
+      for (let i = 1; i <= 6; i++) o.push([Math.cos(a) * len * i / 6, Math.sin(a) * len * i / 6]);
+      if (k === 1 || k === 2) { const b = a + (k === 1 ? 1 : -1) * Math.PI / 2; for (let i = 1; i <= 4; i++) o.push([Math.cos(a) * 50 + Math.cos(b) * 30 * i / 4, Math.sin(a) * 50 + Math.sin(b) * 30 * i / 4]); }
+      const [ex, ey] = o[o.length - 1]; for (let i = 5; i >= 0; i--) o.push([ex * i / 6, ey * i / 6]);
+      pts.push(...o);
+    }
+    for (const [x, y] of pts) { const r = j.add(x, y); if (r) got.push(P.jab(D.RU, r).v); }
+    const last = j.finish(); if (last) got.push(P.jab(D.RU, last).v);
+    eq(got.join(''), w, 'jabs for «' + w + '»');
+    ok(!bad(w), '«' + w + '» is on the stop list');
+  }
+  const n = [0, 1, 2].map(l => P.jabWords(D.RU, l).length);
+  ok(n[0] >= 8 && n[1] > n[0] && n[2] === P.JAB_WORDS.length, 'words by level: ' + n);
+  ok(P.jabWords(D.RU, 0).every(w => [...w].every(c => D.RU.some(p => p[0] === c))), 'level 0 has only big letters');
+});
+
 test('the 1€ filter calms a shaking hand and lets a quick stroke through', () => {
   const f = new P.OneEuro(0.8, 0.02); let maxDev = 0;
   f.f(10, 0);   // the first point passes as it is
