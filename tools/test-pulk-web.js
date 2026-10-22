@@ -42,6 +42,12 @@ test('the data shared with the app is whole', () => {
   ok(D.themes.some(t => t.title === 'Разминка'), '«Разминка»'); ok(D.pond.length >= 4, 'pond');
 });
 
+test('the drop leans after the finger a little, never further than its limit', () => {
+  eq(P.lean(0, 0), [0, 0], 'no finger, no lean');
+  const near = P.lean(20, 0); ok(Math.abs(near[0] - 20 * P.LEAN) < 1e-9 && near[1] === 0, 'a near finger: its share');
+  const far = P.lean(300, -400); ok(Math.abs(Math.hypot(far[0], far[1]) - P.LEAN_MAX) < 1e-9, 'a far finger: the limit');
+  ok(far[0] > 0 && far[1] < 0, 'towards the finger');
+});
 test('a straight stroke is the big letter of its petal', () => {
   for (let p = 0; p < 8; p++) eq(P.resolve(D.RU, line(p * 45, 60)).v, D.RU[p][0], 'petal ' + p);
 });
