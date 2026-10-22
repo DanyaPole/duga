@@ -147,6 +147,7 @@
   // ---- words: the dictionary, this person's own words and pairs (the matching itself is in core.js) ----
   // stop list (stopwords.js): rude and obscene words are never offered — children type here too
   const dicts = {}, next = Object.create(null), bad = P.Stop(window.PULK_STOP);
+  const soft = (window.PULK_STOP && window.PULK_STOP.soft) || {};
   function loadDict(l) {
     if (dicts[l]) return;
     dicts[l] = 'loading';
@@ -241,10 +242,16 @@
   // which letters are hard for this hand: the game brings them more often
   function missed(ch) { ch = ch.toLowerCase(); const st = store.get('letters', {}), v = own(st, ch) || [0, 0]; v[1]++; st[ch] = v; store.set('letters', st); }
   function fixLastWord() {
-    const w = currentWord(), W = words(); if (guided || !W || w.length < 2) return null;
-    const c = W.correction(w, userWords());
-    if (!c || c === w) return null;
-    for (let i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
+    const w = currentWord(), W = words(); if (guided || w.length < 2) return null;
+    const f = fold(w.toLowerCase()), kind = own(soft, f);
+    let c;
+    if (kind && own(userWords(), f) < 2) c = shape(kind, w);   // a rude word: its kinder twin (stopwords.js «soft»)
+    else {
+      if (!W) return null;
+      c = W.correction(w, userWords());
+      if (!c || c === w) return null;
+      for (let i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
+    }
     const before = text; text = text.slice(0, text.length - w.length) + c; return { before: before, word: w, len: c.length };
   }
   function space() {
@@ -647,7 +654,7 @@
   }
   let sitName = null;
   function speakScreen(top) {
-    const s = begin('speak'); if (top === true) s.scrollTop = 0;
+    const s = begin('speak'); if (top === true) s.scrollTop = 0; pressTab('speak');
     screenAt('speak', function () { speakScreen(true); });
     // a choice the adult offered: big, first, said with one touch; a family photo shows on its option
     const ch = store.get('choice', null);
@@ -1483,7 +1490,10 @@
     render();
   }
 
-  const SCREENS = { speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
+  const SCREENS = { speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen,
+    settings: function () { tab = 'speak'; adultScreen(); } };   // the adult's screen belongs to «Говорить»: its «назад» returns there
+  // the tab that is lit: «Говорить» again when the settings send one back to it
+  function pressTab(name) { document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tab === name); }); }
   document.querySelectorAll('#tabs button').forEach(function (b) {
     b.onclick = function () {
       tab = b.dataset.tab; $('screen').scrollTop = 0; if (tab !== 'speak') letSleep();

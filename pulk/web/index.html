@@ -103,7 +103,11 @@
   #chips button.main { order: 99; margin-left: auto; position: sticky; right: 0; min-width: 120px; box-shadow: -10px 0 0 var(--bg); }
   body.left-hand #chips button.main { order: -1; margin-left: 0; right: auto; left: 0; box-shadow: 10px 0 0 var(--bg); }
   #tabs { display: flex; gap: 4px; padding: 0 max(8px, env(safe-area-inset-left, 0px)); }
-  #tabs button { flex: 1; min-height: 40px; padding: 0 4px; font-size: 14px; border-radius: 12px; }
+  #tabs button { flex: 1 1 auto; min-width: 52px; min-height: 48px; padding: 0 4px; font-size: 14px; border-radius: 12px; }
+  @media (max-width: 380px) { #tabs button { font-size: 13px; } }   /* five tabs on a narrow phone, none under 52 px */
+  /* «Настройки» — always in sight, on every screen with the tabs: a gear with its name under it */
+  #tabs button.gear { flex: 0 0 auto; min-width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.1; }
+  #tabs button.gear b { font-size: 20px; font-weight: 400; } #tabs button.gear small { font-size: 11px; }
   #tabs button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   #kbd { touch-action: none; display: block; width: 100%; flex: 0 0 auto; }
   #big { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; z-index: 5; padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px); }
@@ -116,7 +120,7 @@
 <div id="screen"></div>
 <div id="chips"></div>
 <div id="tabs">
-  <button data-tab="speak">Говорить</button><button data-tab="lesson">Учиться</button><button data-tab="drills">Тренировки</button><button data-tab="pond">Пруд</button>
+  <button data-tab="speak">Говорить</button><button data-tab="lesson">Учиться</button><button data-tab="drills">Тренировки</button><button data-tab="pond">Пруд</button><button data-tab="settings" class="gear"><b aria-hidden="true">⚙</b><small>Настройки</small></button>
 </div>
 <svg id="kbd" role="img" aria-label="Звезда для набора: смах от центра к букве"></svg>
 <div id="big"><p id="bigText"></p><div class="row" style="padding-bottom:12px"><button id="flip" style="flex:1">Перевернуть</button><button id="back" class="main" style="flex:1">Вернуться</button></div></div>
