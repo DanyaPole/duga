@@ -654,7 +654,7 @@
   }
   let sitName = null;
   function speakScreen(top) {
-    const s = begin('speak'); if (top === true) s.scrollTop = 0;
+    const s = begin('speak'); if (top === true) s.scrollTop = 0; pressTab('speak');
     screenAt('speak', function () { speakScreen(true); });
     // a choice the adult offered: big, first, said with one touch; a family photo shows on its option
     const ch = store.get('choice', null);
@@ -1490,7 +1490,10 @@
     render();
   }
 
-  const SCREENS = { speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
+  const SCREENS = { speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen,
+    settings: function () { tab = 'speak'; adultScreen(); } };   // the adult's screen belongs to «Говорить»: its «назад» returns there
+  // the tab that is lit: «Говорить» again when the settings send one back to it
+  function pressTab(name) { document.querySelectorAll('#tabs button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tab === name); }); }
   document.querySelectorAll('#tabs button').forEach(function (b) {
     b.onclick = function () {
       tab = b.dataset.tab; $('screen').scrollTop = 0; if (tab !== 'speak') letSleep();
