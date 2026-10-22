@@ -694,8 +694,8 @@
       hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); talk('me', p); })); });
     }
     s.appendChild(h('h2', 'Для взрослого'));
-    // the way of typing, right here: hidden in «Удобство», nobody found it
-    pick(s, 'Способ набора', 'mode', 'pulse', [['Пульс', 'pulse'], ['Толчки', 'jabs']], '«Пульс» — смах на каждую букву. «Толчки» — слово одним касанием: толчок к букве и назад, поднял палец — пробел.');
+    // «Толчки» for those who know «Пульс» (as the app): a newcomer learns one way, but it is found right here
+    jabsToggle(s);
     if (store.get('doors', null) === 'quick' && !store.get('offered', false)) {
       var st0 = store.get('letters', {}), misses = Object.keys(st0).reduce(function (a, k) { return a + (st0[k][1] || 0); }, 0);
       if (misses >= 15) {
@@ -755,6 +755,12 @@
       r.innerHTML = '';
       list.forEach(function (x) { var on = store.get(key, def) === x[1]; r.appendChild(btn((on ? '✓ ' : '') + x[0], on ? 'main' : '', function () { store.set(key, x[1]); paint(); })); });
     })();
+  }
+  var JABS_NOTE = 'Толчки — целое слово одним касанием, не отрывая пальца: толчок к букве и назад; поднял палец — пробел. Быстрее, когда «Пульс» уже освоен.';
+  function jabsToggle(s) {
+    var b = btn('', 'wide', function () { store.set('mode', store.get('mode', 'pulse') === 'jabs' ? 'pulse' : 'jabs'); paint(); });
+    function paint() { var on = store.get('mode', 'pulse') === 'jabs'; b.textContent = (on ? '✓ ' : '') + 'Толчки — для опытных'; b.className = on ? 'main wide' : 'wide'; }
+    paint(); s.appendChild(b); s.appendChild(h('p', JABS_NOTE, 'muted'));
   }
   function toggle(label, key, def, after) {
     var b = btn('', 'wide', function () { store.set(key, !store.get(key, def)); paint(); if (after) after(); });
@@ -1186,7 +1192,8 @@
     pick(s, 'Сгладить дрожь', 'smooth', 0, [['Нет', 0], ['Слегка', 1], ['Сильно', 2]], 'Дрожь сглаживается, когда палец движется медленно; быстрый смах не запаздывает.');
     pick(s, 'Длина смаха', 'tol', 1, [['Короткая', 0.75], ['Обычная', 1], ['Длинная', 1.4]], '«Короткая» — хватит маленького движения; «Длинная» — мелкие подёргивания не считаются.');
     s.appendChild(toggle('Крупная звезда — больше места для пальца', 'bigStar', false, function () { layout(true); }));
-    pick(s, 'Способ набора', 'mode', 'pulse', [['Пульс', 'pulse'], ['Толчки', 'jabs']], '«Пульс» — смах на каждую букву. «Толчки» — слово одним касанием: толчок к букве и назад, поднял палец — пробел. Когда «Пульс» освоен.');
+    s.appendChild(h('h2', 'Для опытных'));
+    jabsToggle(s);
     s.appendChild(h('p', 'Джойстик (и коляски), геймпад и большая клавиатура по Bluetooth работают сами. Джойстик: толчок к букве и назад — буква, короткий — у центра, с поворотом — с поворотом; A — пробел, B — стереть, X — сказать. Клавиатура: цифры справа или стрелки — направления; с 5 — у центра, с соседней — с поворотом.', 'muted'));
     s.appendChild(h('h2', 'Глаза и уши'));
     s.appendChild(toggle('Крупный текст на экране', 'bigText', false, applyLook));
@@ -1201,6 +1208,8 @@
     var hr = row(); s.appendChild(hr);
     hr.appendChild(btn('Как помочь ребёнку', '', function () { parentsScreen(comfortScreen); }));
     hr.appendChild(btn('Первая проверка', '', function () { checkScreen(comfortScreen); }));
+    s.appendChild(h('h2', 'О программе'));
+    s.appendChild(h('p', 'Пульк в браузере. Бесплатно, без рекламы; набранное остаётся на этом устройстве. Свободная программа, GPL-3.0. Словари: FrequencyWords (Hermit Dave), CC BY-SA 4.0. Следующее слово: предложения Tatoeba (tatoeba.org), CC BY 2.0 FR. Фильтр дрожи: 1€ filter (Casiez, Roussel, Vogel, 2012).', 'muted'));
     // «Передать устройство чистым» (as in the app): for a centre where one tablet goes from child to child
     s.appendChild(h('h2', 'Передать устройство'));
     s.appendChild(h('p', 'Сотрёт всё, что Пульк хранит в этом браузере: настройки, фразы, «Про меня», слова семьи и фото, разговор, капли и выученные слова. Как в первый раз.', 'muted'));
