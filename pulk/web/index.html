@@ -37,6 +37,9 @@
   button.main { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; }
   button.wide { width: 100%; margin-top: 8px; }
   .scroll button { flex: 0 0 auto; }
+  .compose { position: sticky; bottom: -8px; z-index: 1; background: var(--bg); padding: 6px 0 8px; }
+  .row.acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .row.acts button { padding: 0 4px; font-size: 15px; }
+  .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .picks button { min-height: 52px; padding: 4px 8px; line-height: 1.2; }
   .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .answers button { min-height: 52px; padding: 0 4px; font-weight: 600; }
   button.urgent { color: var(--urgent); border-color: var(--urgent); font-weight: 700; }

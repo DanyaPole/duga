@@ -543,7 +543,7 @@
   function textBox(hint) { var t = document.createElement('div'); t.id = 'text'; t.setAttribute('data-hint', hint); return t; }
   function field(value, placeholder, onInput, multi) {
     var f = document.createElement(multi ? 'textarea' : 'input'); if (multi) f.rows = 3; else f.type = 'text';
-    f.value = value; f.placeholder = placeholder; f.oninput = function () { onInput(f.value); }; return f;
+    f.value = value; f.placeholder = placeholder; f.setAttribute('autocomplete', 'off');   // no «Автозаполнить контакт» f.oninput = function () { onInput(f.value); }; return f;
   }
   // «Назад»: the phone's back gesture (and the browser's button) goes to the previous screen of Пульк, not off the
   // page. Each screen marks itself; a screen already on the way back is returned to, not stacked again
@@ -622,15 +622,17 @@
     ur.style.flex = '1'; r0.appendChild(ur);
     var tk = btn('💬 Разговор', '', talkScreen); tk.style.flex = '1'; r0.appendChild(tk);
     s.appendChild(r0);
-    s.appendChild(textBox('Печатай звездой — я скажу'));
-    var r = row();
+    // the phrase being typed stays in sight above the chips while the answers and phrases scroll under it
+    var cmp = h('div', '', 'compose'); s.appendChild(cmp);
+    cmp.appendChild(textBox('Печатай звездой — я скажу'));
+    var r = row('row acts');   // one line: a second line of buttons pushes the phrases under the chips
     r.appendChild(btn('Сказать', 'main', sayAll)); r.appendChild(btn('Показать', '', function () { showBig(text.trim()); }));
     r.appendChild(btn('★ В мои', '', function () {
       var t = text.trim() || lastSaid; if (!t) return;
       store.set('mine', [t].concat(mine().filter(function (p) { return norm(p) !== norm(t); })).slice(0, 60)); sitName = 'Мои'; text = ''; speakScreen(true);
     }));
     r.appendChild(btn('Стереть', '', function () { text = ''; lastFix = null; render(); }));
-    s.appendChild(r);
+    cmp.appendChild(r);
     s.appendChild(h('h2', 'Фразы'));
     s.appendChild(cats); s.appendChild(list);
     function paintSit() {
@@ -1346,7 +1348,8 @@
     onEnter = function () { fixLastWord(); answer(text.trim()); };
     chipAction = { label: 'Сказать', fn: onEnter };
     s.appendChild(h('p', '…или выбери:', 'muted'));
-    task.choices.forEach(function (c) { s.appendChild(btn(c, 'wide', function () { answer(c); })); });
+    var picks = row('picks'); s.appendChild(picks);   // two columns: the screen above the star is short
+    task.choices.forEach(function (c) { picks.appendChild(btn(c, '', function () { answer(c); })); });
     s.appendChild(ok); s.appendChild(btn('К темам', 'wide', function () { theme = -1; drillsScreen(); }));
     render();
   }
