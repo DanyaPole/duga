@@ -369,9 +369,26 @@
   // star would wait for it forever and ignore every later touch
   svg.addEventListener('lostpointercapture', function (e) { endTouch(e, true); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState !== 'visible' && touch) endTouch({ pointerId: touch.id }, true); });
-  // Safari on iPhone zooms with two fingers whatever the page asks: a zoomed page cuts the screens and the star
-  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
-  document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  // Safari on iPhone does not keep «touch-action» on the star (an SVG): on a zoomed page a stroke pans the page, the
+  // star gets no moves, and every stroke becomes a tap on the letter where it began. Taking the touch itself keeps
+  // every stroke on the star; pointer events still come
+  svg.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false });
+  svg.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+  // and the page is not zoomed at all — not by two fingers, not by a double tap; a page that is zoomed already
+  // (from before) can still be pinched back
+  function zoomed() { return window.visualViewport && visualViewport.scale > 1.01; }
+  document.addEventListener('gesturestart', function (e) { if (!zoomed()) e.preventDefault(); });
+  document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1 && !zoomed()) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+  var lastTapEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now(), quick = now - lastTapEnd < 350; lastTapEnd = now;
+    if (!quick || e.touches.length || zoomed()) return;
+    var b = e.target && e.target.closest && e.target.closest('button, input, textarea');
+    if (b && (b.tagName === 'INPUT' || b.tagName === 'TEXTAREA')) return;
+    e.preventDefault();   // the second tap of a double tap would zoom: no zoom, and a button still gets its tap
+    if (b) b.click();
+  }, { passive: false });
 
   // ---- a joystick, a gamepad or a keyboard as the star — nothing to set up. A stick works as «Толчки»: a push out
   // and back is a letter, a short push the letter at the centre, a push that turns the letter with a turn. Keys:
