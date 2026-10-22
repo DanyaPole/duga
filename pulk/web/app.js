@@ -215,6 +215,8 @@
       f.placeholder = t.getAttribute('data-hint') || '';
       f.oninput = function () { text = f.value; lastFix = null; chipsSoon(); };
       f.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (onEnter) onEnter(); } };
+      // the phone's keyboard closed («Готово», a touch elsewhere): the star is back, never a blank place where it was
+      f.onblur = function () { setTimeout(function () { if (sysKbd && document.activeElement !== f) { setSysKbd(false); var k = document.querySelector('#screen button.kb'); if (k) { k.textContent = '⌨'; k.setAttribute('aria-label', 'Обычная клавиатура'); } } }, 0); };
       t.appendChild(f);
     }
     if (f.value !== text) f.value = text;
