@@ -599,7 +599,12 @@
     var e = { name: name, show: show, tab: tab, welcome: document.body.classList.contains('welcome') };
     if (restoring) { visited[visited.length - 1] = e; return; }
     for (var i = visited.length - 1; i >= 0 && visited[i].name !== name; i--) {}
-    if (i >= 0) { var drop = visited.length - 1 - i; visited.length = i + 1; visited[i] = e; if (drop) { ignorePops++; window.history.go(-drop); } return; }
+    if (i >= 0) {
+      var drop = visited.length - 1 - i, w = Math.min(waitingPushes, drop);   // screens not yet in the history need no step back
+      waitingPushes -= w; drop -= w; visited.length = i + 1; visited[i] = e;
+      if (drop) { ignorePops++; window.history.go(-drop); }
+      return;
+    }
     visited.push(e);
     if (visited.length > 1) push();
   }
@@ -728,7 +733,7 @@
     if (iosBrowser && hasOwnData()) s.appendChild(h('p', 'Пульк открыт в Safari: добавьте его на экран «Домой», чтобы слова и фото не пропали. Копия — в «Настройки и помощь».', 'warn'));
     var ar = row();
     ar.appendChild(btn('Предложить выбор', '', function () { adultScreen('choice'); }));
-    ar.appendChild(btn('Настройки и помощь', '', function () { adultScreen(); }));
+    ar.appendChild(btn('Настройки и помощь', '', function () { openTab('adult'); }));
     s.appendChild(ar);
     if (!calm()) s.appendChild(h('p', 'Звезда: прямой смах — крупная буква, смах с поворотом — мелкая снаружи, «туда и обратно» — у центра, касание в центре — пробел. ⏎ — сказать, 🔊 — ещё раз. Промахи звезды Пульк поправит сам; ⌫ сразу после — вернуть как было. Работает и без интернета, если страница открывалась хотя бы раз.', 'muted'));
     onEnter = sayAll; chipAction = { label: 'Сказать', fn: sayAll, ifText: true }; render(); keepAwake();
@@ -1057,7 +1062,7 @@
   function adultScreen(focus) {
     var s = begin(); s.scrollTop = 0;
     screenAt('adult', function () { adultScreen(); });
-    s.appendChild(btn('← Вернуться', '', function () { sitName = null; speakScreen(true); }));
+    s.appendChild(btn('← Вернуться', '', function () { sitName = null; openTab('speak'); }));
     s.appendChild(h('h1', 'Для взрослого'));
     var tc = h('div', '', 'card choice'); tc.appendChild(h('div', todayTip(), 'title')); s.appendChild(tc);
     if (hasOwnData() || iosBrowser) safetyCard(s);
@@ -1079,7 +1084,7 @@
       store.set('choice', c); talk('you', c.q);
       var recent = store.get('choices', []).filter(function (x) { return x.opts.join() !== c.opts.join(); });
       store.set('choices', [{ q: c.q, opts: c.opts }].concat(recent).slice(0, 8));
-      tab = 'speak'; speakScreen(true);
+      openTab('speak');
     }
     s.appendChild(btn('Показать ребёнку', 'main wide', function () { offer(q, opts.split(/[,;\n]/)); }));
     var recent = store.get('choices', []);
@@ -1478,7 +1483,8 @@
     render();
   }
 
-  var SCREENS = { speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
+  function openTab(t) { document.querySelector('#tabs button[data-tab="' + t + '"]').click(); }
+  var SCREENS = { adult: function () { adultScreen(); }, speak: function () { speakScreen(true); }, lesson: function () { step = 0; lessonScreen(); }, drills: function () { theme = -1; drillsScreen(); }, pond: pondScreen };
   document.querySelectorAll('#tabs button').forEach(function (b) {
     b.onclick = function () {
       tab = b.dataset.tab; $('screen').scrollTop = 0; if (tab !== 'speak') letSleep();
