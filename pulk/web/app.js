@@ -268,7 +268,7 @@
   }
 
   // ---- «Толчки»: the cutting into jabs is in core.js ----
-  function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game; }
+  function jabsOn() { return store.get('mode', 'pulse') === 'jabs' && !guided && !game && !probe; }   // the hand check needs the whole stroke
 
   // ---- a steadier hand (as Pulse.Steady): tremor smoothed with the 1€ filter (Casiez, Roussel, Vogel, CHI 2012) —
   // strong smoothing while the finger moves slowly or rests, almost none in a quick stroke; and strokes measured

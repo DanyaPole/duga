@@ -37,20 +37,23 @@
   button.main { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; }
   button.wide { width: 100%; margin-top: 8px; }
   .scroll button { flex: 0 0 auto; }
-  .compose { position: sticky; bottom: -8px; z-index: 1; background: var(--bg); padding: 6px 0 8px; }
-  .row.acts { display: grid; grid-template-columns: repeat(4, 1fr) 44px; gap: 6px; } .row.acts button.kb { padding: 0; font-size: 20px; } .row.acts button { padding: 0 4px; font-size: 15px; }
+  .compose { position: sticky; bottom: -8px; z-index: 1; background: var(--bg); padding: 6px 0 8px; box-shadow: 0 8px 0 var(--bg); }   /* no heading peeks out under it */
+  .row.acts { display: grid; grid-template-columns: repeat(4, 1fr) 44px; gap: 6px; } .row.acts button.kb { padding: 0; font-size: 20px; } .row.acts button { padding: 0 4px; font-size: 15px; white-space: nowrap; }
+  @media (max-width: 400px) { .row.acts button { font-size: 14px; } }   /* «★ В мои» stays on one line on a narrow phone */
   .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .picks button { min-height: 52px; padding: 4px 8px; line-height: 1.2; }
   .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .answers button { min-height: 52px; padding: 0 4px; font-weight: 600; }
   button.urgent { color: var(--urgent); border-color: var(--urgent); font-weight: 700; }
   .line { display: flex; gap: 6px; align-items: flex-end; } .line .wide { flex: 1; }
   button.x { min-width: 48px; padding: 0; color: var(--muted); }
+  button.main.x { color: var(--on-accent); }   /* «→» in «Разговор»: readable on the accent */
   .choice { border-color: var(--accent); } .cq { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
   .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .choices button { min-height: 72px; font-size: 22px; font-weight: 700; }
   button.quiet { color: var(--muted); border-style: dashed; }
   button.big { flex: 1; min-height: 96px; font-size: 26px; }
   .card .title { font-weight: 700; }
+  #screen > .title { font-weight: 700; margin-top: 16px; }   /* a setting's name in «Удобство», apart from the buttons above */
   input[type=text], textarea { width: 100%; margin-top: 8px; font: inherit; min-height: 48px; font-size: 16px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; -webkit-user-select: text; user-select: text; }
   /* the first visit: no keyboard yet, only the welcome */
   body.welcome #chips, body.welcome #tabs, body.welcome #kbd { display: none; }
