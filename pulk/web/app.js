@@ -196,12 +196,18 @@
 
   // ---- typing ----
   let text = '', onEnter = null, lastFix = null;
+  const FIX_GLOW_MS = 1500;
   function render() {
     // the star and the word chips only where they type something: not over the pond or the adult's forms
     document.body.classList.toggle('nostar', !$('text') && !game && !probe);
     const t = $('text'); if (!t) { paintLabels(); return; }   // no text on this screen, but the star's keys still change
     if (sysKbd) { sysField(t); paintLabels(); chipsSoon(); return; }
-    t.textContent = text; const c = document.createElement('span'); c.className = 'caret'; t.appendChild(c);
+    const fx = lastFix && text === lastFix.at && performance.now() - lastFix.t < FIX_GLOW_MS ? text.length - 1 - lastFix.len : -1;
+    if (fx >= 0) {   // the word Пульк just corrected glows for a moment, so the person (and whoever watches) sees it
+      t.textContent = text.slice(0, fx); const g = document.createElement('span'); g.className = 'fixed'; g.textContent = text.slice(fx, text.length - 1);
+      t.appendChild(g); t.appendChild(document.createTextNode(' '));
+    } else t.textContent = text;
+    const c = document.createElement('span'); c.className = 'caret'; t.appendChild(c);
     if (guided) { const rest = guided.word.slice(guided.i), r = document.createElement('span'); r.className = 'rest'; r.textContent = caps() ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest; t.appendChild(r); }
     paintLabels(); chipsSoon();
   }
@@ -237,12 +243,13 @@
     const c = W.correction(w, userWords());
     if (!c || c === w) return null;
     for (let i = 0; i < c.length; i++) if (fold(c[i].toLowerCase()) !== fold(w[i].toLowerCase())) missed(c[i]);
-    const before = text; text = text.slice(0, text.length - w.length) + c; return { before: before, word: w };
+    const before = text; text = text.slice(0, text.length - w.length) + c; return { before: before, word: w, len: c.length };
   }
   function space() {
     const fix = fixLastWord();
-    text += ' '; lastFix = fix && { undo: fix.before + ' ', at: text, word: fix.word };
+    text += ' '; lastFix = fix && { undo: fix.before + ' ', at: text, word: fix.word, len: fix.len, t: performance.now() };
     render(); sayWord();
+    if (fix) setTimeout(render, FIX_GLOW_MS + 20);
   }
   function backspace() {
     if (lastFix && text === lastFix.at) { text = lastFix.undo; const u = userWords(), f = fold(lastFix.word.toLowerCase()); u[f] = Math.max(2, own(u, f) + 1); store.set('user', u); lastFix = null; render(); return; }
