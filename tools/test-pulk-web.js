@@ -89,6 +89,37 @@ test('suggestions: frequent words first, the person\'s own words before them', (
 });
 test('words keep the case that was typed', () => { eq(P.shape('привет', 'Пр'), 'Привет'); eq(P.shape('привет', 'ПР'), 'ПРИВЕТ'); });
 
+const appSource = fs.readFileSync(path.join(root, 'pulk/web/app.js'), 'utf8');
+test('left-hand layout puts «Сказать» at the left edge', () => {
+  const html = fs.readFileSync(path.join(root, 'pulk/web/index.html'), 'utf8');
+  ok(/body\.left-hand #chips button\.main[^}]*order:\s*-1[^}]*left:\s*0/.test(html), 'left-hand main action rule');
+});
+
+function storeFrom(value) {
+  const storage = { getItem: function () { return value; }, setItem: function () {} };
+  const start = appSource.indexOf('  const memo = Object.create(null);');
+  const end = appSource.indexOf('\n\n  let lang =', start);
+  ok(start >= 0 && end > start, 'store source is present');
+  return new Function('localStorage', appSource.slice(start, end) + '\nreturn store;')(storage);
+}
+
+test('saved settings fall back when storage is damaged or empty', () => {
+  for (const saved of ['{broken', '', null]) eq(storeFrom(saved).get('hand', 'right'), 'right', 'saved ' + JSON.stringify(saved));
+});
+
+test('empty input is handled', () => {
+  eq(W.suggest('', 4, {}), []);
+  eq(W.correction('', {}), null);
+  eq(P.shape('привет', ''), 'привет');
+});
+
+test('very long input is handled', () => {
+  const long = 'а'.repeat(100000);
+  eq(W.suggest(long, 4, {}), []);
+  eq(W.correction(long, {}), null);
+  eq(P.shape('привет', long), 'привет');
+});
+
 test('the page script parses', () => {
   for (const f of ['pulk/web/app.js']) new Function(fs.readFileSync(path.join(root, f), 'utf8'));
 });
