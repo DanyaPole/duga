@@ -88,6 +88,22 @@ test('suggestions: frequent words first, the person\'s own words before them', (
   eq(W.correction('ьиша', { 'миша': 2 }), 'миша', 'own words are known to the correction');
 });
 test('words keep the case that was typed', () => { eq(P.shape('привет', 'Пр'), 'Привет'); eq(P.shape('привет', 'ПР'), 'ПРИВЕТ'); });
+test('suggestions handle words with «ё» through core Words', () => {
+  const words = new P.Words(['ёлка', 'ёлочка', 'ель'], D.RU);
+  eq(words.suggest('ёл', 3, {}), ['ель', 'ёлка', 'ёлочка']);
+});
+test('suggestions handle hyphenated words through core Words', () => {
+  const words = new P.Words(['по-русски', 'по-доброму', 'пока'], D.RU);
+  eq(words.suggest('по-', 3, {}), ['по-русски', 'по-доброму']);
+});
+test('suggestions preserve an initial capital through core Words', () => {
+  const words = new P.Words(['привет', 'привести'], D.RU);
+  eq(words.suggest('При', 2, {}), ['Привет', 'Привести']);
+});
+test('suggestions handle a one-letter word through core Words', () => {
+  const words = new P.Words(['я', 'яблоко'], D.RU);
+  eq(words.suggest('я', 2, {}), ['я', 'яблоко']);
+});
 
 const appSource = fs.readFileSync(path.join(root, 'pulk/web/app.js'), 'utf8');
 test('left-hand layout puts «Сказать» at the left edge', () => {
