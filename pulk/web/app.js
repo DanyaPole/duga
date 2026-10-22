@@ -662,6 +662,8 @@
       hist.forEach(function (p) { s.appendChild(btn('↻ ' + p, 'wide', function () { say(p); talk('me', p); })); });
     }
     s.appendChild(h('h2', 'Для взрослого'));
+    // the way of typing, right here: hidden in «Удобство», nobody found it
+    pick(s, 'Способ набора', 'mode', 'pulse', [['Пульс', 'pulse'], ['Толчки', 'jabs']], '«Пульс» — смах на каждую букву. «Толчки» — слово одним касанием: толчок к букве и назад, поднял палец — пробел.');
     if (store.get('doors', null) === 'quick' && !store.get('offered', false)) {
       var st0 = store.get('letters', {}), misses = Object.keys(st0).reduce(function (a, k) { return a + (st0[k][1] || 0); }, 0);
       if (misses >= 15) {
