@@ -197,6 +197,8 @@
   // ---- typing ----
   var text = '', onEnter = null, lastFix = null;
   function render() {
+    // the star and the word chips only where they type something: not over the pond or the adult's forms
+    document.body.classList.toggle('nostar', !$('text') && !game && !probe);
     var t = $('text'); if (!t) { paintLabels(); return; }   // no text on this screen, but the star's keys still change
     t.textContent = text; var c = document.createElement('span'); c.className = 'caret'; t.appendChild(c);
     if (guided) { var rest = guided.word.slice(guided.i), r = document.createElement('span'); r.className = 'rest'; r.textContent = caps() ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest; t.appendChild(r); }
