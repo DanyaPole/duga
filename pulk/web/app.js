@@ -145,12 +145,13 @@
   }
 
   // ---- words: the dictionary, this person's own words and pairs (the matching itself is in core.js) ----
-  const dicts = {}, next = Object.create(null);
+  // stop list (stopwords.js): rude and obscene words are never offered — children type here too
+  const dicts = {}, next = Object.create(null), bad = P.Stop(window.PULK_STOP);
   function loadDict(l) {
     if (dicts[l]) return;
     dicts[l] = 'loading';
     fetch('../../dict_' + l + '.txt').then(function (r) { return r.ok ? r.text() : ''; })
-      .then(function (t) { dicts[l] = new Words(t.split(/\r?\n/), l === 'ru' ? D.RU : D.EN); paintChips(); })
+      .then(function (t) { dicts[l] = new Words(t.split(/\r?\n/), l === 'ru' ? D.RU : D.EN, bad); paintChips(); })
       .catch(function () { dicts[l] = null; });
   }
   loadDict('ru');
@@ -175,7 +176,8 @@
     let p = fold(prev), out = [], mine = own(store.get('pairs', {}), p) || {};
     Object.keys(mine).filter(function (w) { return mine[w] >= 2; }).sort(function (a, b) { return mine[b] - mine[a]; }).forEach(function (w) { if (out.indexOf(w) < 0) out.push(w); });
     (next[p] || []).forEach(function (w) { if (out.indexOf(w) < 0) out.push(w); });
-    if (!out.length) out = (next['^'] || []).slice();
+    out = out.filter(function (w) { return !bad(w); });
+    if (!out.length) out = (next['^'] || []).filter(function (w) { return !bad(w); });
     return out.slice(0, 3);
   }
   function currentWord() { const m = /[\p{L}']+$/u.exec(text); return m ? m[0] : ''; }

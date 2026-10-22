@@ -64,10 +64,31 @@
     if (typed.length > 1 && typed === typed.toUpperCase() && typed !== typed.toLowerCase()) return w.toUpperCase();
     return typed[0] && typed[0] !== typed[0].toLowerCase() ? w[0].toUpperCase() + w.slice(1) : w;
   }
-  function Words(list, t) {
+  // the stop list (stopwords.js): a test for words never to offer — whole words, roots at the start (also after a
+  // prefix) and, for English, parts anywhere
+  function Stop(s) {
+    s = s || {};
+    const f = function (a) { return (a || []).map(function (w) { return fold(w.toLowerCase()); }); };
+    const words = Object.create(null), roots = f(s.roots), prefixes = [''].concat(f(s.prefixes)), parts = f(s.parts);
+    f(s.words).forEach(function (w) { words[w] = true; });
+    return function (w) {
+      w = fold(w.toLowerCase());
+      if (words[w]) return true;
+      for (let i = 0; i < parts.length; i++) if (w.indexOf(parts[i]) >= 0) return true;
+      for (let i = 0; i < prefixes.length; i++) {
+        const p = prefixes[i]; if (w.lastIndexOf(p, 0) !== 0) continue;
+        for (let j = 0; j < roots.length; j++) if (w.lastIndexOf(roots[j], p.length) === p.length) return true;
+      }
+      return false;
+    };
+  }
+  function never() { return false; }
+
+  function Words(list, t, bad) {
+    bad = bad || never;
     const words = [], folded = [], byFirst = Object.create(null), rank = Object.create(null), pos = Object.create(null);
     list.forEach(function (w) {
-      w = w.trim().toLowerCase(); if (!w) return;
+      w = w.trim().toLowerCase(); if (!w || bad(w)) return;
       const f = fold(w), i = words.length; words.push(w); folded.push(f);
       (byFirst[f[0]] || (byFirst[f[0]] = [])).push(i); if (!(f in rank)) rank[f] = i;
     });
@@ -94,7 +115,8 @@
       return (rank >= 0 ? Math.log(rank + 20) : Math.log(20 - 400 / rank)) + m * 3 + rest * 0.12 + (rest === 0 ? -1 : 0);
     }
     function firsts(c, allow) { const out = []; if (byFirst[c]) out.push(byFirst[c]); if (allow > 0) for (const f in byFirst) if (f !== c && near(c, f)) out.push(byFirst[f]); return out; }
-    this.known = function (w, user) { const f = fold(w.toLowerCase()); return f in rank || own(user, f) >= 2; };
+    // a stop-list word typed on purpose is left as typed: never offered, never "corrected" into another word
+    this.known = function (w, user) { const f = fold(w.toLowerCase()); return f in rank || own(user, f) >= 2 || bad(f); };
     this.suggest = function (typed, n, user) {
       const t = fold(typed.toLowerCase()), best = [], allow = allowance(t.length);
       function offer(key, word, sc) {
@@ -103,7 +125,7 @@
         best.push({ key: key, word: word, sc: sc }); best.sort(function (a, b) { return a.sc - b.sc; }); if (best.length > n) best.pop();
       }
       firsts(t[0], allow).forEach(function (idx) { for (let i = 0; i < idx.length; i++) { const sc = score(t, folded[idx[i]], allow, idx[i]); if (sc === sc) offer(folded[idx[i]], words[idx[i]], sc); } });
-      for (const w in user) { const cnt = user[w]; if (cnt >= 1) { const sc = score(t, w, allow, -cnt); if (sc === sc) offer(w, w, sc); } }
+      for (const w in user) { const cnt = user[w]; if (cnt >= 1 && !bad(w)) { const sc = score(t, w, allow, -cnt); if (sc === sc) offer(w, w, sc); } }
       return best.map(function (b) { return shape(b.word, typed); });
     };
     this.correction = function (typed, user) {
@@ -115,7 +137,7 @@
         if (!best || sc < best.sc) best = { word: original, sc: sc };
       }
       firsts(t[0], allow).forEach(function (idx) { for (let i = 0; i < idx.length; i++) consider(folded[idx[i]], idx[i], words[idx[i]]); });
-      for (const w in user) if (user[w] >= 2) consider(w, -user[w], w);
+      for (const w in user) if (user[w] >= 2 && !bad(w)) consider(w, -user[w], w);
       return best && shape(best.word, typed);
     };
   }
@@ -163,5 +185,5 @@
     return this.x0;
   };
 
-  root.PulkCore = { DEG: DEG, own: own, R: R, PAD: PAD, OUTER: OUTER, P_MIN: P_MIN, P_TURN: P_TURN, HOLD_MS: HOLD_MS, PH: PH, KINDS: KINDS, SPOT: SPOT, ALT: ALT, SPACE: SPACE, spot: spot, petalOf: petalOf, slot: slot, tap: tap, resolve: resolve, KEYS: KEYS, hit: hit, fold: fold, shape: shape, Words: Words, JAB_OUT: JAB_OUT, JAB_HOME: JAB_HOME, JAB_SHORT: JAB_SHORT, Jabs: Jabs, jab: jab, alpha: alpha, OneEuro: OneEuro };
+  root.PulkCore = { DEG: DEG, own: own, R: R, PAD: PAD, OUTER: OUTER, P_MIN: P_MIN, P_TURN: P_TURN, HOLD_MS: HOLD_MS, PH: PH, KINDS: KINDS, SPOT: SPOT, ALT: ALT, SPACE: SPACE, spot: spot, petalOf: petalOf, slot: slot, tap: tap, resolve: resolve, KEYS: KEYS, hit: hit, fold: fold, shape: shape, Stop: Stop, Words: Words, JAB_OUT: JAB_OUT, JAB_HOME: JAB_HOME, JAB_SHORT: JAB_SHORT, Jabs: Jabs, jab: jab, alpha: alpha, OneEuro: OneEuro };
 })(typeof window !== 'undefined' ? window : globalThis);
