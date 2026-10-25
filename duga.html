@@ -206,6 +206,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 }
 .out-toast.ok { border-color: var(--ok); }
 .app.left .out-toast { right: auto; left: 0; }
+.voice-note { margin: 0; font-size: 14px; line-height: 1.4; }
 .outbtn.ok { background: var(--zone); border-color: var(--ok); color: var(--ok); }
 .caret { display: inline-block; width: 2px; height: 1.15em; background: var(--accent); vertical-align: -0.2em; margin-left: 1px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
@@ -426,6 +427,7 @@ details b { color: var(--fg); font-weight: 500; }
         </button>
       </div>
     </div>
+    <p class="voice-note" id="voice-note" role="status" hidden></p>
     <div class="cands" id="cands" aria-label="Варианты слова"></div>
   </div>
   <div class="kbd" id="kbd">
@@ -941,13 +943,39 @@ details b { color: var(--fg); font-weight: 500; }
       '.': 'точка', ',': 'запятая', '?': 'вопрос', '!': 'восклицание', ':': 'двоеточие', '-': 'тире', '—': 'тире', '…': 'многоточие' },
     en: { '.': 'period', ',': 'comma', '?': 'question mark', '!': 'exclamation mark', ':': 'colon', '-': 'dash', '—': 'dash', "'": 'apostrophe', '@': 'at' },
   };
+  let voices = [];
+  function loadVoices() {
+    // Recheck before each request too: a voice may have been removed since voiceschanged.
+    try { voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : []; }
+    catch (e) { voices = []; }
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    loadVoices();
+  }
   function speak(t, rate = 1.4) {
-    if (!window.speechSynthesis || !t) return;
+    if (!t) return;
+    const note = $('voice-note');
     try {
+      loadVoices();
+      const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
+      const voice = voices.find(v => v.localService === true && v.lang.toLowerCase() === locale.toLowerCase());
+      if (!voice) {
+        const message = lang === 'ru'
+          ? 'На этом устройстве нет своего голоса — фраза не озвучена, чтобы она не ушла в интернет. Можно показать её собеседнику.'
+          : 'No local voice is available on this device. The phrase was not spoken to keep it off the internet. You can show it to the other person.';
+        if (note.textContent !== message) note.textContent = message;
+        note.hidden = false;
+        return;
+      }
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(t); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = rate;
+      const u = new SpeechSynthesisUtterance(t); u.voice = voice; u.lang = locale; u.rate = rate;
       speechSynthesis.speak(u);
-    } catch (e) {}
+      note.hidden = true;
+    } catch (e) {
+      note.textContent = lang === 'ru' ? 'Фраза не озвучена. Можно показать её собеседнику.' : 'The phrase was not spoken. You can show it to the other person.';
+      note.hidden = false;
+    }
   }
   const sayLetter = c => speak(NAMES[lang][c.toLowerCase()] || c, 1.5);
   // Called when the text grows or shrinks (see render): the sound says what just happened
