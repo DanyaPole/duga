@@ -1,8 +1,8 @@
 // Builds pulk/web/data.js from the Android Pulk sources, so the web version and the app say the same things:
 // the star's letters, quick replies, situations, drills and the pond's milestones.
-// node tools/build-pulk-web.js [path to C:\dev\pulk]
+// node tools/build-pulk-web.js [path to C:\dev\projects\pulk]
 const fs = require('fs'), path = require('path');
-const src = process.argv[2] || 'C:/dev/pulk';
+const src = process.argv[2] || 'C:/dev/projects/pulk';
 const kt = f => fs.readFileSync(path.join(src, 'app/src/main/java/app/pulk', f), 'utf8');
 const strings = s => [...s.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
 
