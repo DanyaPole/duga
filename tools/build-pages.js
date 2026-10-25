@@ -7,10 +7,9 @@ const root = path.join(__dirname, '..'), out = path.join(root, '_site');
 // out into pulk-src and sets PULK_SRC; locally it is the neighbour folder C:\dev\projects\pulk.
 const pulkSrc = process.env.PULK_SRC || path.join(root, '..', 'pulk');
 if (!fs.existsSync(path.join(pulkSrc, 'web', 'app.js'))) throw new Error('Пульк не найден: ' + pulkSrc + ' (нужна папка web/ репозитория DanyaPole/pulk)');
-// It is tested first, with the dictionaries it loads on this site (../../dict_*.txt = this root):
-// a failing test stops the build, so a broken version is never published
-require('child_process').execFileSync(process.execPath, [path.join(pulkSrc, 'tools', 'test-web.js')],
-  { stdio: 'inherit', env: Object.assign({}, process.env, { PULK_DICT_DIR: root }) });
+// It is tested first (with its own dictionaries, the Android app's): a failing test stops the build,
+// so a broken version is never published
+require('child_process').execFileSync(process.execPath, [path.join(pulkSrc, 'tools', 'test-web.js')], { stdio: 'inherit' });
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
 const BUILD = Date.now().toString(36); // new cache name on every build, so updates reach installed copies
