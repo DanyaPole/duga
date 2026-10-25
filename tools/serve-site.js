@@ -3,7 +3,7 @@
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..', '_site'), port = Number(process.argv[2]) || 5174;
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
-  '.webmanifest': 'application/manifest+json', '.png': 'image/png' };
+  '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 http.createServer((req, res) => {
   let rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
   const file = path.join(root, rel);
