@@ -959,21 +959,23 @@ details b { color: var(--fg); font-weight: 500; }
     try {
       loadVoices();
       const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
-      const voice = voices.find(v => v.localService === true && v.lang.toLowerCase() === locale.toLowerCase());
+      const language = lang === 'ru' ? /^ru([_-]|$)/i : /^en([_-]|$)/i;
+      const localVoices = voices.filter(v => v.localService === true && typeof v.lang === 'string' && language.test(v.lang));
+      const voice = localVoices.find(v => v.lang.replace(/_/g, '-').toLowerCase() === locale.toLowerCase()) || localVoices[0];
       if (!voice) {
         const message = lang === 'ru'
-          ? 'На этом устройстве нет своего голоса — фраза не озвучена, чтобы она не ушла в интернет. Можно показать её собеседнику.'
-          : 'No local voice is available on this device. The phrase was not spoken to keep it off the internet. You can show it to the other person.';
+          ? 'Для этого языка нет своего голоса устройства. Включи «Щелчки» или скачай голос в настройках устройства.'
+          : 'Your device has no voice of its own for this language. Turn on Clicks or download a voice in device settings.';
         if (note.textContent !== message) note.textContent = message;
         note.hidden = false;
         return;
       }
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(t); u.voice = voice; u.lang = locale; u.rate = rate;
+      const u = new SpeechSynthesisUtterance(t); u.voice = voice; u.lang = voice.lang.replace(/_/g, '-'); u.rate = rate;
       speechSynthesis.speak(u);
       note.hidden = true;
     } catch (e) {
-      note.textContent = lang === 'ru' ? 'Фраза не озвучена. Можно показать её собеседнику.' : 'The phrase was not spoken. You can show it to the other person.';
+      note.textContent = lang === 'ru' ? 'Голос сейчас недоступен. Включи «Щелчки» или скачай голос в настройках устройства.' : 'Voice is currently unavailable. Turn on Clicks or download a voice in device settings.';
       note.hidden = false;
     }
   }
@@ -1006,6 +1008,7 @@ details b { color: var(--fg); font-weight: 500; }
   }
   function setSound(m) {
     sound = m; store.set('duga-sound', m); paintSound();
+    if (m !== 'voice') $('voice-note').hidden = true;
     if (m === 'clicks') { audio(); [0, 2, 4, 5].forEach((p, i) => tone(SCALE[p], 0.09, i * 0.1)); }
     if (m === 'voice') { audio(); speak(lang === 'ru' ? 'Голос включён' : 'Voice is on', 1.1); }
   }
@@ -1672,6 +1675,7 @@ details b { color: var(--fg); font-weight: 500; }
   }
   function setLang(l) {
     lang = l; store.set('duga-lang', l);
+    $('voice-note').hidden = true;
     di = 0; lastSwipe = null;
     $('lang-ru').setAttribute('aria-pressed', l === 'ru');
     $('lang-en').setAttribute('aria-pressed', l === 'en');
