@@ -3,8 +3,14 @@
 // worker for offline use) and copy the files the page loads.
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), out = path.join(root, '_site');
-// Пульк в браузере is tested first: a failing test stops the build, so a broken version is never published
-require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'test-pulk-web.js')], { stdio: 'inherit' });
+// Пульк в браузере lives in its own repository (DanyaPole/pulk, folder web/). On GitHub the workflow checks it
+// out into pulk-src and sets PULK_SRC; locally it is the neighbour folder C:\dev\projects\pulk.
+const pulkSrc = process.env.PULK_SRC || path.join(root, '..', 'pulk');
+if (!fs.existsSync(path.join(pulkSrc, 'web', 'app.js'))) throw new Error('Пульк не найден: ' + pulkSrc + ' (нужна папка web/ репозитория DanyaPole/pulk)');
+// It is tested first, with the dictionaries it loads on this site (../../dict_*.txt = this root):
+// a failing test stops the build, so a broken version is never published
+require('child_process').execFileSync(process.execPath, [path.join(pulkSrc, 'tools', 'test-web.js')],
+  { stdio: 'inherit', env: Object.assign({}, process.env, { PULK_DICT_DIR: root }) });
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
 const BUILD = Date.now().toString(36); // new cache name on every build, so updates reach installed copies
@@ -36,8 +42,11 @@ fs.mkdirSync(path.join(out, 'icons'));
 for (const f of ['swipe.js', 'dict_ru.txt', 'dict_en.txt']) fs.copyFileSync(path.join(root, f), path.join(out, f));
 for (const f of ['icon-180.png', 'icon-192.png', 'icon-512.png']) fs.copyFileSync(path.join(root, 'icons', f), path.join(out, 'icons', f));
 
-// the Android keyboard Пульк: its own page and the installer file, served as they are
+// the Android keyboard Пульк: its own pages, icons and the installer file live here, served as they are;
+// the browser version comes from Пульк's repository
 fs.cpSync(path.join(root, 'pulk'), path.join(out, 'pulk'), { recursive: true });
+fs.rmSync(path.join(out, 'pulk', 'web'), { recursive: true, force: true });
+fs.cpSync(path.join(pulkSrc, 'web'), path.join(out, 'pulk', 'web'), { recursive: true });
 
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   name: 'Дуга — клавиатура для одной руки', short_name: 'Дуга', lang: 'ru',

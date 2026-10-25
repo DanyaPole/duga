@@ -18,11 +18,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # Пульк в браузере (pulk/web on the site) comes from its own repository
+      - uses: actions/checkout@v4
+        with:
+          repository: DanyaPole/pulk
+          path: pulk-src
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: node tools/swipe-test.js ru syl
       - run: node tools/build-pages.js
+        env:
+          PULK_SRC: pulk-src
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

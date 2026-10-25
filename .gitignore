@@ -1,3 +1,6 @@
 _site/
 node_modules/
 .claude/settings.local.json
+# Пульк в браузере собирается из репозитория DanyaPole/pulk (папка web/), здесь его нет
+pulk/web/
+pulk-src/
